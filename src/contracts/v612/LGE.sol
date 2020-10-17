@@ -217,11 +217,15 @@ contract cLGE is Ownable, ReentrancyGuard {
     /// Starts LGE by admin call
     function startLGE() public onlyOwner {
         require(LGEStarted == false, "Already started");
-        console.log("Starting LGE on block", block.number);
-        contractStartTimestamp = block.number;
+        console.log("Starting LGE on block", block.timestamp);
+        contractStartTimestamp = block.timestamp;
         LGEStarted = true;
 
         updateRunningAverages();
+    }
+    
+    function isLGEOver() public view returns (bool) {
+        return block.timestamp > contractStartTimestamp.add(LGEDurationDays);
     }
 
 
@@ -307,6 +311,8 @@ contract cLGE is Ownable, ReentrancyGuard {
         console.log(" > LGE.sol::addLiquidityAtomic()");
         require(LGEStarted == true, "LGE Didn't start");
         require(LGEFinished == false, "LGE : Liquidity generation finished");
+        require(isLGEOver() == false, "LGE is over.");
+
         // require(token == _WETH || token == COREToken || token == address(tokenBeingWrapped) || token == preWrapEthPair, "Unsupported deposit token");
 
         if(IUniswapV2Pair(preWrapEthPair).balanceOf(address(this)) > 0) {

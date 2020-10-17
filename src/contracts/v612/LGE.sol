@@ -632,7 +632,7 @@ contract cLGE is Ownable, ReentrancyGuard {
         uint256 totalValueOfCORE =  balanceCORENow.div(coreTokenPer1ETH).mul(1e18);
 
         totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0: 
-                    totalValueOfCORE.sub(totalValueOfWrapper).mul(coreTokenPer1ETH).div(1e18);
+                    totalValueOfCORE.sub(totalValueOfWrapper).div(coreTokenPer1ETH).mul(1e18);
 
 
         // send tokenwrap

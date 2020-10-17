@@ -61,6 +61,7 @@ import '@uniswap/v2-periphery/contracts/interfaces/IWETH.sol';
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol"; 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; 
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
@@ -124,7 +125,7 @@ interface ICORETransferHandler {
     function sync(address) external;
 }
 
-contract cLGE is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
+contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
 
     using SafeMath for uint256;
 

@@ -218,7 +218,12 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         preWrapEthPair = _preWrapEthPair;
         uniswapFactory = coreGlobals.UniswapFactory();
     }
-
+    
+    function setTokenBeingWrapped(address token, address tokenPairWithWETH) public onlyOwner {
+        tokenBeingWrapped = IERC20(token);
+        pairWithWETHAddressForToken[token] = tokenPairWithWETH;
+    }
+    
     /// Starts LGE by admin call
     function startLGE() public onlyOwner {
         require(LGEStarted == false, "Already started");

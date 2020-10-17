@@ -28,10 +28,9 @@
 // BBBBB++++++++++++++++BBBBBB
 
 
-import "@openzeppelin/contracts/access/Ownable.sol"; 
-import "./ICOREGlobals.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
-contract COREGlobals is Ownable {
+contract COREGlobals is OwnableUpgradeSafe {
 
     address public CORETokenAddress;
     address public COREGlobalsAddress;
@@ -41,8 +40,8 @@ contract COREGlobals is Ownable {
     address public UniswapFactory;
     address public transferHandler;
 
-    constructor(address _COREWETHUniPair, address _COREToken, address _COREDelegator, address _COREVault, address _uniFactory, address _transferHandler) public {
-
+    function initialize(address _COREWETHUniPair, address _COREToken, address _COREDelegator, address _COREVault, address _uniFactory, address _transferHandler) public initializer {
+        OwnableUpgradeSafe.__Ownable_init();
         CORETokenAddress = _COREToken;
         COREGlobalsAddress = address(this);
         COREDelegatorAddress = _COREDelegator;
@@ -50,10 +49,24 @@ contract COREGlobals is Ownable {
         UniswapFactory = _uniFactory;
         transferHandler = _transferHandler;
         COREWETHUniPair = _COREWETHUniPair;
-
-
     }
-     
+
+    function setCoreToken(address _COREToken) public onlyOwner {
+        CORETokenAddress = _COREToken;
+    }
+
+    function setCoreDelegator(address _COREDelegator) public onlyOwner {
+        COREDelegatorAddress = _COREDelegator;
+    }
+
+    function setCoreVaultAddress(address _COREVault) public onlyOwner {
+        COREVaultAddress = _COREVault;
+    }
+
+    function setTransferHandler(address _transferHandler) public onlyOwner {
+        transferHandler = _transferHandler;
+    }
+
     mapping (address => bool) private delegatorStateChangeApproved;
 
     function addDelegatorStateChangePermission(address that, bool status) public onlyOwner {

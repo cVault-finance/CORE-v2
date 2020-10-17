@@ -345,6 +345,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
                 totalETHContributed = totalETHContributed.add(balWETH);
                 totalCredit = handleWETHLiquidityAddition(balWETH,tokenBeingWrappedPer1ETH,coreTokenPer1ETH);
                 // No other number should be there since it just started a line above
+                COREBalance = IERC20(COREToken).balanceOf(address(this)); /// CHANGE
             }
 
             // Handling core wrap deposits
@@ -361,6 +362,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
                 totalCredit = totalCredit.add(  handleTokenBeingWrappedLiquidityAddition(tokenBeingWrappedBalChange,tokenBeingWrappedPer1ETH,coreTokenPer1ETH) );
                 // We update reserves
                 wrappedTokenBalance = IERC20(tokenBeingWrapped).balanceOf(address(this));
+                COREBalance = IERC20(COREToken).balanceOf(address(this)); /// CHANGE
+
            }           
 
             // we check core balance against reserves
@@ -427,6 +430,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
             console.log("I'm trying to figure out hwo much of wrapped token to buy",outToken);
             // we buy wrappedtoken
             buyToken(address(tokenBeingWrapped), outToken,_WETH, amt,preWrapEthPair);
+            wrappedTokenBalance = IERC20(tokenBeingWrapped).balanceOf(address(this));
+
 
            //We buy outToken of the wrapped token and add it here
             wrappedTokenContributed[msg.sender] = wrappedTokenContributed[msg.sender].add(outToken);

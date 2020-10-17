@@ -59,8 +59,8 @@ import './ICOREGlobals.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IWETH.sol';
 // import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 
-import "@openzeppelin/contracts/access/Ownable.sol"; 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol"; 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; 
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
@@ -124,7 +124,7 @@ interface ICORETransferHandler {
     function sync(address) external;
 }
 
-contract cLGE is Ownable, ReentrancyGuard {
+contract cLGE is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
 
     using SafeMath for uint256;
 
@@ -192,7 +192,11 @@ contract cLGE is Ownable, ReentrancyGuard {
     uint256 public LGEDurationDays;
     bool public LGEFinished;
 
-    constructor(uint256 daysLong, address _wrappedToken, address _coreGlobals, address _preWrapEthPair) public {
+    function initializer(uint256 daysLong, address _wrappedToken, address _coreGlobals, address _preWrapEthPair) public initializer {
+        require(msg.sender == address(0x5A16552f59ea34E44ec81E58b3817833E9fD5436));
+        OwnableUpgradeSafe.__Ownable_init();
+        ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
+
         contractStartTimestamp = uint256(-1); // wet set it here to max so checks fail
         LGEDurationDays = daysLong.mul(1 days);
         coreGlobals = ICOREGlobals(_coreGlobals);

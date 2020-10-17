@@ -571,8 +571,14 @@ contract cLGE is Ownable, ReentrancyGuard {
         // divide it by total core to get the percentage of total this user contributed
         // And then multiply that by total core
         uint256 COREToRefundToThisPerson = COREContributed[msg.sender].mul(1e12).div(totalCOREContributed).
-            mul(totalCOREContributed).div(1e12);
-
+            mul(totalCOREToRefund).div(1e12);
+        // Let 50% of total core is refunded, total core contributed is 5000
+        // So refund amount it 2500
+        // Lets say this user contributed 100, so he needs to get 50 back
+        // 100*1e12 = 100000000000000
+        // 100000000000000/5000 is 20000000000
+        // 20000000000*2500 is 50000000000000
+        // 50000000000000/1e21 = 50
         CORERefundClaimed[msg.sender] = true;
         IERC20(COREToken).transfer(msg.sender,COREToRefundToThisPerson);
 

@@ -340,13 +340,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
 
             uint256 totalCredit; // In core units
 
-            // Handling weth
-            if(balWETH > 0){
-                totalETHContributed = totalETHContributed.add(balWETH);
-                totalCredit = handleWETHLiquidityAddition(balWETH,tokenBeingWrappedPer1ETH,coreTokenPer1ETH);
-                // No other number should be there since it just started a line above
-                COREBalance = IERC20(COREToken).balanceOf(address(this)); /// CHANGE
-            }
+ 
 
             // Handling core wrap deposits
             // we check change from reserves
@@ -365,6 +359,14 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
                 COREBalance = IERC20(COREToken).balanceOf(address(this)); /// CHANGE
 
            }           
+           
+             // Handling weth
+            if(balWETH > 0){
+                totalETHContributed = totalETHContributed.add(balWETH);
+                totalCredit = handleWETHLiquidityAddition(balWETH,tokenBeingWrappedPer1ETH,coreTokenPer1ETH);
+                // No other number should be there since it just started a line above
+                COREBalance = IERC20(COREToken).balanceOf(address(this)); /// CHANGE
+            }
 
             // we check core balance against reserves
             // Note this is FoT token safe because we check balance of this 

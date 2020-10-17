@@ -354,13 +354,14 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
             // If its bigger than 0 we handle
             if(tokenBeingWrappedBalChange > 0) {
                 totalWrapTokenContributed = totalWrapTokenContributed.add(tokenBeingWrappedBalChange);
-                // We update reserves
-                wrappedTokenBalance = tokenBeingWrappedBalNow;
+      
                 // We add wrapped token contributionsto the person this is for stats only
                 wrappedTokenContributed[msg.sender] = wrappedTokenContributed[msg.sender].add(tokenBeingWrappedBalChange);
                 // We check how much credit he got that returns from this function
                 totalCredit = totalCredit.add(  handleTokenBeingWrappedLiquidityAddition(tokenBeingWrappedBalChange,tokenBeingWrappedPer1ETH,coreTokenPer1ETH) );
-            }           
+                // We update reserves
+                wrappedTokenBalance = IERC20(tokenBeingWrapped).balanceOf(address(this));
+           }           
 
             // we check core balance against reserves
             // Note this is FoT token safe because we check balance of this 

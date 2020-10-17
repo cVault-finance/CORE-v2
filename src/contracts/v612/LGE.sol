@@ -138,7 +138,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     address public coreEthPair;
     address public wrappedToken;
     address public preWrapEthPair;
-    address immutable public COREToken;
+    address public COREToken;
     address public _WETH;
     address public wrappedTokenUniswapPair;
     address public uniswapFactory;
@@ -193,7 +193,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     uint256 public LGEDurationDays;
     bool public LGEFinished;
 
-    function initializer(uint256 daysLong, address _wrappedToken, address _coreGlobals, address _preWrapEthPair) public initializer {
+    function initialize(uint256 daysLong, address _wrappedToken, address _coreGlobals, address _preWrapEthPair) public initializer {
         require(msg.sender == address(0x5A16552f59ea34E44ec81E58b3817833E9fD5436));
         OwnableUpgradeSafe.__Ownable_init();
         ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();

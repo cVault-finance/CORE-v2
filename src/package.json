@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "build": "npx buidler compile",
-    "deploy": "node getDeployCode.js"
+    "cBTC": "node deployCodecBTC.js" 
   },
   "dependencies": {
     "@openzeppelin/cli": "^2.8.2",

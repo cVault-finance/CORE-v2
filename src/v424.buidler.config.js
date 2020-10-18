@@ -4,15 +4,15 @@ usePlugin('buidler-log-remover');
 module.exports = {
   solc: {
     version: "0.4.24",
+    optimizer: {
+      enabled: true,
+      runs: 200
+    },
   },
   networks: {
     buidlerevm: {
       allowUnlimitedContractSize: true,
       settings: {
-        optimizer: {
-          enabled: true,
-          runs: 200
-        },
         evmVersion: "byzantium"
        }
     },

@@ -12,3 +12,7 @@ Proxy/node_modules
 .openzeppelin/.session
 /src/artifacts
 /src/cache
+/src/build
+src/contracts/*/flattened_*.sol
+src/build_contracts
+src/tmp_contracts

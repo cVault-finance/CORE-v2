@@ -2,7 +2,7 @@
 
 ## Running live tests
 
-``
+```
 # install jq
 cd src
 ./build.sh

@@ -2,6 +2,13 @@
 
 ## Running live tests
 
+First, get an Infura Project ID (like an API key), and export it for your environment
+```
+export INFURAPID="abcdefghgjkl"
+```
+
+then...
+
 ```
 # install jq
 cd src

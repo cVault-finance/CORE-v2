@@ -244,7 +244,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         require(unitsContributed[msg.sender].sub(unitsClaimed[msg.sender]) > 0, "LEG : Nothing to claim");
 
         IUniswapV2Pair(wrappedTokenUniswapPair)
-            .transfer(msg.sender, unitsContributed[msg.sender].mul(LPPerUnitContributed).div(1e8));
+            .transfer(msg.sender, unitsContributed[msg.sender].sub(getCORERefundForPerson(msg.sender)).mul(LPPerUnitContributed).div(1e8));
             // LPPerUnitContributed is stored at 1e8 multiplied
 
         unitsClaimed[msg.sender] = unitsContributed[msg.sender];
@@ -583,7 +583,12 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     function addLiquidityToPairAdmin() nonReentrant onlyOwner public{
         addLiquidityToPair(false);
     }
-
+    
+    function getCORERefundForPerson(address guy) public view returns (uint256) {
+        return COREContributed[guy].mul(1e12).div(totalCOREContributed).
+            mul(totalCOREToRefund).div(1e12);
+    }
+    
     function getCOREREfund() nonReentrant public {
         require(LGEFinished == true, "LGE not finished");
         require(totalCOREToRefund > 0 , "No refunds");
@@ -594,8 +599,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         // To get refund we get the core contributed of this user
         // divide it by total core to get the percentage of total this user contributed
         // And then multiply that by total core
-        uint256 COREToRefundToThisPerson = COREContributed[msg.sender].mul(1e12).div(totalCOREContributed).
-            mul(totalCOREToRefund).div(1e12);
+        uint256 COREToRefundToThisPerson = getCORERefundForPerson(msg.sender);
         // Let 50% of total core is refunded, total core contributed is 5000
         // So refund amount it 2500
         // Lets say this user contributed 100, so he needs to get 50 back
@@ -666,8 +670,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         totalLPCreated = IUniswapV2Pair(wrappedTokenUniswapPair).balanceOf(address(this));
 
         // calculate minted per contribution
-        LPPerUnitContributed = totalLPCreated.mul(1e8).div(totalUnitsContributed); // Stored as 1e8 more for round erorrs and change
-
+        LPPerUnitContributed = totalLPCreated.mul(1e8).div(totalUnitsContributed.sub(totalCOREToRefund)); // Stored as 1e8 more for round erorrs and change
+                                                                               // Remove refunded from the total
         // set LGE to complete
         LGEFinished = true;
 

@@ -581,7 +581,7 @@ abstract contract ERC20Detailed is IERC20 {
 contract ERC20DetailedToken is ERC20, ERC20Detailed {
     function deposit() external payable{
         console.log(address(this));
-        revert("fuck you why am i called");
+        revert("ERC20DetailedToken::deposit - ERROR: should not be called");
     }
     constructor(string memory name, string memory symbol, uint8 decimals, uint256 initialSupply) ERC20Detailed(name, symbol, decimals) public
     {

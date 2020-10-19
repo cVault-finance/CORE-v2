@@ -81,7 +81,7 @@ contract COREDelegator is OwnableUpgradeSafe {
 
     modifier onlyCOREcontracts () {
         // all contracts will be in globals
-        require(ICOREGlobals(coreGlobalsAddress).isStateChangeApprovedContract(msg.sender), "CORE DELEGATOR: Fuck off.");
+        require(ICOREGlobals(coreGlobalsAddress).isStateChangeApprovedContract(msg.sender), "CORE DELEGATOR: only CORE contracts are allowed to call this function");
         _;
 
     }

@@ -613,8 +613,9 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     }
 
     function addLiquidityToPair(bool publicCall)  internal {
-        require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generaiton ongoing");
-        require(LGEFinished == false, "LGE : Liquidity generation finished");
+        // console.log("hello");
+        // require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generaiton ongoing");
+        // require(LGEFinished == false, "LGE : Liquidity generation finished");
         
         // !!!!!!!!!!!
         //unlock wrapping
@@ -622,7 +623,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         //!!!!!!!!!
 
 
-        // wrap token
+        // // wrap token
         tokenBeingWrapped.transfer(wrappedToken, tokenBeingWrapped.balanceOf(address(this)));
         IERC95(wrappedToken).wrapAtomic(address(this));
         IERC95(wrappedToken).skim(address(this)); // In case

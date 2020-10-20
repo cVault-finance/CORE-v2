@@ -18,6 +18,7 @@ contract cBTC is Ownable, ERC95 {
     constructor(address[] memory _addresses, uint8[] memory _percent, uint8[] memory tokenDecimals,  address _coreGlobals)
      ERC95("cVault.finance/cBTC", "cBTC", _addresses, _percent, tokenDecimals)
      public {
+        console.log("cBTC constructor called");
         coreGlobals = ICOREGlobals(_coreGlobals);
     }
 
@@ -45,6 +46,7 @@ contract cBTC is Ownable, ERC95 {
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal  virtual override {
         require(paused == false, "Transfers paused until LGE is over");
+        console.log("Transfer handler address", coreGlobals.TransferHandler());
         ICORETransferHandler(coreGlobals.TransferHandler()).handleTransfer(from, to, amount);
     }
 

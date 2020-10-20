@@ -21,7 +21,7 @@ const cBTC = artifacts.require('cBTC');
 const CORE_VAULT_ADDRESS = "0xc5cacb708425961594b63ec171f4df27a9c0d8c9";
 const LGE_2_PROXY_ADDRESS = "0xf7cA8F55c54CbB6d0965BC6D65C43aDC500Bc591";
 const proxyAdmin_ADDRESS = "0x9cb1eeccd165090a4a091209e8c3a353954b1f0f";
-const ProxyAdmin = artifacts.require('OpenZeppelinUpgradesOwnable');
+const ProxyAdminContract = artifacts.require('ProxyAdmin');
 const { advanceBlock, advanceTime, advanceTimeAndBlock } = require('./timeHelpers');
 
 const advanceByHours = async (hours) => {
@@ -29,6 +29,7 @@ const advanceByHours = async (hours) => {
 }
 const MAX_53_BIT = 4503599627370495;
 const GAS_LIMIT = 0x1fffffffffffff;
+
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
     beforeEach(async () => {
@@ -40,11 +41,9 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;
-        this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 5000000000 });
-        let proxyAdmin = await ProxyAdmin.at(proxyAdmin_ADDRESS);
-
+        this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
+        let proxyAdmin = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
         await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
-
         assert(block_number > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
         let x3bal = await web3.eth.getBalance(x3);
         assert(x3bal == ether('100'), "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
@@ -126,6 +125,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         console.log("Ok, end the LGE now");
         // Advance another 3 hours to make sure the grace period passed
         await advanceByHours(3);
+
         let addLPE = await iLGE.addLiquidityToPairPublic({ from: rando }); // Why is this reverting?
         console.log(addLPE);
 

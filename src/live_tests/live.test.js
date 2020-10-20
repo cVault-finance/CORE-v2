@@ -20,8 +20,8 @@ const cBTC = artifacts.require('cBTC');
 
 const CORE_VAULT_ADDRESS = "0xc5cacb708425961594b63ec171f4df27a9c0d8c9";
 const LGE_2_PROXY_ADDRESS = "0xf7cA8F55c54CbB6d0965BC6D65C43aDC500Bc591";
-const proxyAdmin = "0x9cb1eeccd165090a4a091209e8c3a353954b1f0f";
-
+const proxyAdmin_ADDRESS = "0x9cb1eeccd165090a4a091209e8c3a353954b1f0f";
+const ProxyAdmin = artifacts.require('OpenZeppelinUpgradesOwnable');
 const { advanceBlock, advanceTime, advanceTimeAndBlock } = require('./timeHelpers');
 
 const advanceByHours = async (hours) => {
@@ -41,9 +41,9 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;
         this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 5000000000 });
+        let proxyAdmin = await ProxyAdmin.at(proxyAdmin_ADDRESS);
 
-
-        proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
+        await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
 
         assert(block_number > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
         let x3bal = await web3.eth.getBalance(x3);

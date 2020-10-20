@@ -41,6 +41,8 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;
         this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 5000000000 });
+
+
         proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
 
         assert(block_number > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");

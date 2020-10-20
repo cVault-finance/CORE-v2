@@ -30,8 +30,8 @@ module.exports = {
       protocol: 'http',
       host: 'localhost',
       port: 8545,
-      gas: 5000000,
-      gasPrice: 5e9,
+      gas: 999999999,
+      gasPrice: 1,
       networkId: '*'
     },
     kovan: {
@@ -51,11 +51,11 @@ module.exports = {
       version: "0.6.12",
       docker: false,
       settings: {
-       optimizer: {
-         enabled: true,
-         runs: 999999
-       },
-       evmVersion: "byzantium"
+        optimizer: {
+          enabled: true,
+          runs: 999999
+        },
+        evmVersion: "byzantium"
       }
     }
   }

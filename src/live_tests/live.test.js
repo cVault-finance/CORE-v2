@@ -20,23 +20,29 @@ const cBTC = artifacts.require('cBTC');
 
 const CORE_VAULT_ADDRESS = "0xc5cacb708425961594b63ec171f4df27a9c0d8c9";
 const LGE_2_PROXY_ADDRESS = "0xf7cA8F55c54CbB6d0965BC6D65C43aDC500Bc591";
+const proxyAdmin = "0x9cb1eeccd165090a4a091209e8c3a353954b1f0f";
 
-const {advanceBlock, advanceTime, advanceTimeAndBlock} = require('./timeHelpers');
+const { advanceBlock, advanceTime, advanceTimeAndBlock } = require('./timeHelpers');
 
 const advanceByHours = async (hours) => {
     await advanceTimeAndBlock(60 * 60 * hours);
 }
-
+const MAX_53_BIT = 4503599627370495;
+const GAS_LIMIT = 0x1fffffffffffff;
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
     beforeEach(async () => {
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
     });
+
     it("Tests should fork from mainnet at a block number after the LGE is started and deployed", async () => {
         // Sanity tests to assure ganache restarts for each test trial
         this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;
+        this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 5000000000 });
+        proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
+
         assert(block_number > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
         let x3bal = await web3.eth.getBalance(x3);
         assert(x3bal == ether('100'), "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
@@ -70,11 +76,11 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         const lgeEndTimestamp = 1603579592;
         let dayNum = 0;
         const hoursPerBlockToSkip = 6;
-        while(dayNum <= 8 * 24/hoursPerBlockToSkip) {
+        while (dayNum <= 8 * 24 / hoursPerBlockToSkip) {
             await advanceByHours(hoursPerBlockToSkip);
             const blockTimestamp = (await web3.eth.getBlock("latest")).timestamp;
             let lgeOVER = await iLGE.isLGEOver();
-            if(blockTimestamp > lgeEndTimestamp) {
+            if (blockTimestamp > lgeEndTimestamp) {
                 // Reached beyond the end point of the LGE
                 assert(lgeOVER, `LGE should have ended by ${blockTimestamp}`)
                 dayNum = 1e20; // early exit
@@ -84,7 +90,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
                 assert(lgeOVER == false, `LGE should NOT have ended by ${blockTimestamp}`)
             }
             dayNum++;
-            if(dayNum == 8 * 24/hoursPerBlockToSkip) {
+            if (dayNum == 8 * 24 / hoursPerBlockToSkip) {
                 assert(false, "8 days should be long enough for the LGE to end");
             }
         }
@@ -96,15 +102,15 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await advanceBlock();
         lgeOVER = await iLGE.isLGEOver();
         assert(lgeOVER, `LGE should have ended after artificially moving timestamp forward`)
-        if(lgeOVER) {
+        if (lgeOVER) {
             console.log("OKAY. LGE OVER.")
         }
 
         // Now the fun begins, extending the mainnet data set and avancing us past the point of LGE completion means we can now test with mainnet numbers
-        
+
         // First, let's try to claim the LP without actually ending the LGE, and make sure that fails
         console.log("First, let's try to claim the LP without actually ending the LGE, and make sure that fails");
-        await expectRevert(iLGE.claimLP({from: rando}), "LGE : Liquidity generation not finished")
+        await expectRevert(iLGE.claimLP({ from: rando }), "LGE : Liquidity generation not finished")
 
         // get the wrappedToken value (cBTC in this case.)
         let wrappedTokenAddress = await iLGE.wrappedToken();
@@ -112,21 +118,21 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         console.log(`Got wrapped cBTC (presumably) from ${wrappedTokenAddress}.`);
 
         // Before ending the LGE, you have to set the LGEAddress on cBTC...
-        await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, {from: this.owner});
+        await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: this.owner });
 
         // Ok, end the LGE now
         console.log("Ok, end the LGE now");
         // Advance another 3 hours to make sure the grace period passed
         await advanceByHours(3);
-        let addLPE = await iLGE.addLiquidityToPairPublic({from: rando}); // Why is this reverting?
+        let addLPE = await iLGE.addLiquidityToPairPublic({ from: rando }); // Why is this reverting?
         console.log(addLPE);
 
         // Next, let's claim some LP from rando, who didn't actually contribute to the LGE
         console.log("Next, let's claim some LP from rando, who didn't actually contribute to the LGE");
-        let claimedLP = await iLGE.claimLP({from: rando})
+        let claimedLP = await iLGE.claimLP({ from: rando })
         console.log(claimedLP);
 
     });
-    
+
 
 });

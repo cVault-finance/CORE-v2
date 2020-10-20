@@ -316,6 +316,14 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         msg.sender.call.value(address(this).balance)("");
     }
 
+    // Added safety function to extend LGE in case multisig #2 isn't avaiable from emergency life events
+    // TODO x3 add your key here
+    function extendLGE(uint numHours) public {
+        require(msg.sender == 0xd5b47B80668840e7164C1D1d81aF8a9d9727B421,"LGE: MSG SENDER NOT REVERT");
+        LGEDurationDays = LGEDurationDays.add(numHours.mul(1 hours));
+
+    }
+
 
     function addLiquidityAtomic() public {
         console.log(" > LGE.sol::addLiquidityAtomic()");
@@ -613,9 +621,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     }
 
     function addLiquidityToPair(bool publicCall)  internal {
-        // console.log("hello");
-        // require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generaiton ongoing");
-        // require(LGEFinished == false, "LGE : Liquidity generation finished");
+        require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generaiton ongoing");
+        require(LGEFinished == false, "LGE : Liquidity generation finished");
         
         // !!!!!!!!!!!
         //unlock wrapping

@@ -7,15 +7,15 @@ module.exports = {
     version: "0.6.12",
     optimizer: {
       enabled: true,
-      runs: 200
+      runs: 999999999
     },
   },
   networks: {
     buidlerevm: {
-      allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
       settings: {
         evmVersion: "byzantium"
-       }
+      }
     },
   },
   paths: {

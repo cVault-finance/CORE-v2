@@ -196,11 +196,11 @@ contract COREDelegator is OwnableUpgradeSafe {
 
     // by blocking all token withdrawals we have to keep state of a token about previous pair
     // what doe shtis mena
-    function handleToken0OutFromDoubleControlledPair() {
+    function handleToken0OutFromDoubleControlledPair() internal{
         // update state for this token (lp)
         // set state to update next check
     }
-    function handleToken1OutFromDoubleControlledPair() {
+    function handleToken1OutFromDoubleControlledPair() internal {
         // check for previous state update being burn
 
     }
@@ -220,33 +220,33 @@ contract COREDelegator is OwnableUpgradeSafe {
                                             // Or is it
 
 
-    function getCOREBottomPrice() returns (uint256 COREBottomInWETH) {
-        (uint256 COREReserves, uint256 WETHReserves,) = IUniswapV2Pair(tokenUniswapPair).getReserves();
-        // 1e22 is 10k of 1e18
-        //1e22.sub(COREReserves) is total out
-        uint256 totalSellOfAllCORE = getAmountOut(1e22.sub(COREReserves) , COREReserves, WETHReserves);
-        COREBottomInWETH = WETHReserves.sub(totalSellOfAllCORE).div(1e4); //1e4 is 10k
-    }
+    // function getCOREBottomPrice() public view returns (uint256 COREBottomInWETH) {
+    //     (uint256 COREReserves, uint256 WETHReserves,) = IUniswapV2Pair(tokenUniswapPair).getReserves();
+    //     // 1e22 is 10k of 1e18
+    //     //1e22.sub(COREReserves) is total out
+    //     uint256 totalSellOfAllCORE = getAmountOut(1e22.sub(COREReserves) , COREReserves, WETHReserves);
+    //     COREBottomInWETH = WETHReserves.sub(totalSellOfAllCORE).div(1e4); //1e4 is 10k
+    // }
 
-    uint private lastBlockCOREBottomUpdate;
-    function updateCOREBottomPrice(bool forceUpdate) internal {
-        uint256 _coreBottomPriceFromETHPair = getCOREBottomPrice();
-        // Note its intended that it just doesnt update it and goes for old price
-        // To not block transfers
-        if(block.number > lastBlockCOREBottomUpdate.add(500) 
-                && forceUpdate ? true : _coreBottomPriceFromETHPair < coreBottomPriceFromETHPair.mul(13).div(10))
-                // We check here for bottom price change in case of manipulation
-                // I dont see a scenario this is legimate
-                // forceUpdate bypasses this check
-                {
-            coreBottomPriceFromETHPair = _coreBottomPriceFromETHPair;
-            lastBlockCOREBottomUpdate = block.number;
-        }
-    }
+    // uint private lastBlockCOREBottomUpdate;
+    // function updateCOREBottomPrice(bool forceUpdate) internal {
+    //     uint256 _coreBottomPriceFromETHPair = getCOREBottomPrice();
+    //     // Note its intended that it just doesnt update it and goes for old price
+    //     // To not block transfers
+    //     if(block.number > lastBlockCOREBottomUpdate.add(500) 
+    //             && forceUpdate ? true : _coreBottomPriceFromETHPair < coreBottomPriceFromETHPair.mul(13).div(10))
+    //             // We check here for bottom price change in case of manipulation
+    //             // I dont see a scenario this is legimate
+    //             // forceUpdate bypasses this check
+    //             {
+    //         coreBottomPriceFromETHPair = _coreBottomPriceFromETHPair;
+    //         lastBlockCOREBottomUpdate = block.number;
+    //     }
+    // }
 
-    function forceUpdateBottomPrice() public onlyOwner {
-        updateCOREBottomPrice(true); 
-    }
+    // function forceUpdateBottomPrice() public onlyOwner {
+    //     updateCOREBottomPrice(true); 
+    // }
 
     
     function sync(address token) public returns (bool isMint, bool isBurn) {

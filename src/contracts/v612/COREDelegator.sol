@@ -158,6 +158,96 @@ contract COREDelegator is OwnableUpgradeSafe {
                 currentToken.TOKEN_DEFAULT_FEE;
 
     }
+
+
+        // This function is just calculating FoT amounts for CORE
+    // Flow of this
+    // msg.sender is token check
+    // sender is what calls CORE token
+    // So we check who is sender here
+    // If sender is one of the pairs
+    // We sync that pair
+    // recipent is the recipent of CORE otken
+    // We check that for pair too
+
+    ////////////
+    /// recipent is any of the CORE pairs IF
+    // Its a SELL or a MINT
+    // sender is PAIR if its a BUY or BURN
+    ////////////
+
+    // If sender or recipent is pir we can update volume in CORE bottom units
+    // we upgrade core bottom units eveyr lets say 500 blocks which is about 1.5hr
+
+    mapping (address => address) isPairForThisToken;
+
+
+    struct Pair {
+        address token0;
+        address token1;
+        uint256 runningAverageVolumeForLast24hInCOREBottomPriceUnits;
+        uint256[25] volumeInHour;
+        bool volumeArrayFilled;
+        uint8 firstInArray;
+    }
+
+    mapping(address=> bool) public isDoubleControlledPair;
+    mapping(address => Pair) public _pair;
+
+    // by blocking all token withdrawals we have to keep state of a token about previous pair
+    // what doe shtis mena
+    function handleToken0OutFromDoubleControlledPair() {
+        // update state for this token (lp)
+        // set state to update next check
+    }
+    function handleToken1OutFromDoubleControlledPair() {
+        // check for previous state update being burn
+
+    }
+
+    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal  returns (uint256 amountOut) {
+        require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
+        require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+        uint amountInWithFee = amountIn.mul(997);
+        uint numerator = amountInWithFee.mul(reserveOut);
+        uint denominator = reserveIn.mul(1000).add(amountInWithFee);
+        amountOut = numerator / denominator;
+    }
+
+    uint256 public coreBottomPriceFromETHPair; // Real bottom price is higher but this good enough to aproximate vol
+                                            // In something thats not possible to manipulate
+                                            // Or is it
+
+
+    function getCOREBottomPrice() returns (uint256 COREBottomInWETH) {
+        (uint256 COREReserves, uint256 WETHReserves,) = IUniswapV2Pair(tokenUniswapPair).getReserves();
+        // 1e22 is 10k of 1e18
+        //1e22.sub(COREReserves) is total out
+        uint256 totalSellOfAllCORE = getAmountOut(1e22.sub(COREReserves) , COREReserves, WETHReserves);
+        COREBottomInWETH = WETHReserves.sub(totalSellOfAllCORE).div(1e4); //1e4 is 10k
+    }
+
+    uint private lastBlockCOREBottomUpdate;
+    function updateCOREBottomPrice(bool forceUpdate) internal {
+        uint256 _coreBottomPriceFromETHPair = getCOREBottomPrice();
+        // Note its intended that it just doesnt update it and goes for old price
+        // To not block transfers
+        if(block.number > lastBlockCOREBottomUpdate.add(500) 
+                && forceUpdate ? true : _coreBottomPriceFromETHPair < coreBottomPriceFromETHPair.mul(13).div(10))
+                // We check here for bottom price change in case of manipulation
+                // I dont see a scenario this is legimate
+                // forceUpdate bypasses this check
+                {
+            coreBottomPriceFromETHPair = _coreBottomPriceFromETHPair;
+            lastBlockCOREBottomUpdate = block.number;
+        }
+    }
+
+    function forceUpdateBottomPrice() public onlyOwner {
+        updateCOREBottomPrice(true); 
+    }
+
     
     function sync(address token) public returns (bool isMint, bool isBurn) {
         TokenInfo memory currentToken = _tokens[token];

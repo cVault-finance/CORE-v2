@@ -186,13 +186,13 @@ contract COREDelegator is OwnableUpgradeSafe {
     struct Pair {
         address token0;
         address token1;
-        uint256 runningAverageVolumeForLast24hInCOREBottomPriceUnits;
         uint256[25] volumeInHour;
+        uint256 cumulativeVolumeLast24hInCOREBottomUnits;
         bool volumeArrayFilled;
-        uint8 firstInArray;
+        uint8 currentArrayPosition;
     }
 
-    mapping(address=> bool) public isDoubleControlledPair;
+    mapping(address => bool) public isDoubleControlledPair;
     mapping(address => Pair) public _pair;
 
     // by blocking all token withdrawals we have to keep state of a token about previous pair
@@ -203,6 +203,33 @@ contract COREDelegator is OwnableUpgradeSafe {
     }
     function handleToken1OutFromDoubleControlledPair() internal {
         // check for previous state update being burn
+
+    }
+
+    function getVolumeOfTokenInCoreBottomUnits(address pairAddress) public view returns(uint256) {
+        Pair memory currentPair = _pair[pairAddress]; // memory this is  a view
+    
+        return currentPair.volumeArrayFilled ? 
+            currentPair.cumulativeVolumeLast24hInCOREBottomUnits.div(currentPair.currentArrayPosition == 0 ? 1: currentPair.currentArrayPosition) :
+            currentPair.cumulativeVolumeLast24hInCOREBottomUnits.sub(currentPair.volumeInHour[currentPair.currentArrayPosition]).div(24); 
+            // If the array is not filled we just divide it by current array position note it has -1 already applied because its 0
+            // indexed - and note the special case for first hour ever which will just return that hours volume so far
+            // We shoudnt extrapolate volume to 24h here or it can be manipulated
+            // For the case its already filled we substract the current one which is getting filled
+    }
+
+    function addVolumeToToken(uint256 paidFees, address pairAddress) internal {
+
+        Pair storage currentPair = _pair[pairAddress]; // storage because we edit it
+        uint256 valueOfPaidFees = paidFees.mul(coreBottomPriceFromETHPair);
+        currentPair.volumeInHour[currentPair.currentArrayPosition] = currentPair.volumeInHour[currentPair.currentArrayPosition].add(valueOfPaidFees);
+        updateRunningAveragesArray(pairAddress, valueOfPaidFees);
+
+
+    }
+
+    function updateRunningAveragesArray(address pairAddress, uint256 valueOfPaidFees) internal {
+
 
     }
 
@@ -217,6 +244,7 @@ contract COREDelegator is OwnableUpgradeSafe {
         uint denominator = reserveIn.mul(1000).add(amountInWithFee);
         amountOut = numerator / denominator;
     }
+
 
     uint256 public coreBottomPriceFromETHPair; // Real bottom price is higher but this good enough to aproximate vol
                                             // In something thats not possible to manipulate
@@ -246,6 +274,10 @@ contract COREDelegator is OwnableUpgradeSafe {
         }
     }
 
+    // Admin function
+    // its possible core bottom price gets stuck at old version
+    // In case someone puts in 30% of total liquidity into liquidity at once
+    // This applies only to CORE/WETH pool - not new LGES
     function forceUpdateBottomPrice() public onlyOwner {
         updateCOREBottomPrice(true); 
     }

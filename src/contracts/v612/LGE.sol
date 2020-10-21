@@ -171,7 +171,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
                                       // Was noted and decided that the impact of this is not-significant
     uint256 public totalLPCreated;    
     uint256 private totalUnitsContributed;
-    uint256 public LPPerUnitContributed; // stored as 1e8 more - this is done for change
+    uint256 public LPPerUnitContributed; // stored as 1e18 more - this is done for change
     ////////////////////////////////////////
 
 
@@ -244,8 +244,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         require(unitsContributed[msg.sender].sub(unitsClaimed[msg.sender]) > 0, "LEG : Nothing to claim");
 
         IUniswapV2Pair(wrappedTokenUniswapPair)
-            .transfer(msg.sender, unitsContributed[msg.sender].sub(getCORERefundForPerson(msg.sender)).mul(LPPerUnitContributed).div(1e8));
-            // LPPerUnitContributed is stored at 1e8 multiplied
+            .transfer(msg.sender, unitsContributed[msg.sender].sub(getCORERefundForPerson(msg.sender)).mul(LPPerUnitContributed).div(1e18));
+            // LPPerUnitContributed is stored at 1e18 multiplied
 
         unitsClaimed[msg.sender] = unitsContributed[msg.sender];
     }
@@ -678,8 +678,9 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         totalLPCreated = IUniswapV2Pair(wrappedTokenUniswapPair).balanceOf(address(this));
 
         // calculate minted per contribution
-        LPPerUnitContributed = totalLPCreated.mul(1e8).div(totalUnitsContributed.sub(totalCOREToRefund)); // Stored as 1e8 more for round erorrs and change
+        LPPerUnitContributed = totalLPCreated.mul(1e18).div(totalUnitsContributed.sub(totalCOREToRefund)); // Stored as 1e18 more for round erorrs and change
                                                                                // Remove refunded from the total
+        require(LPPerUnitContributed > 0, "LP Per Unit Contribute Must be above Zero");
         // set LGE to complete
         LGEFinished = true;
 

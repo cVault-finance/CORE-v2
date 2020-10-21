@@ -172,10 +172,11 @@ contract CoreVault is OwnableUpgradeSafe {
         // Loop over pools
 
         for (uint256 pid = 0; pid < length; ++pid) {
-            uint256 newAllocPoint = ICORETransferHandler(coreGlobals.TransferHandler()).getVolumeOfTokenInCoreBottomUnits(address(poolInfo[pid].token));
-            totalAllocPoint = totalAllocPoint.sub(poolInfo[pid].allocPoint).add(newAllocPoint.div(1e18)); // Dividing by 1e18 is safe
+            uint256 newAllocPoint = ICORETransferHandler(coreGlobals.TransferHandler())
+                                        .getVolumeOfTokenInCoreBottomUnits(address(poolInfo[pid].token)).div(1e18);// Dividing by 1e18 is safe
                                                                                                         // Effectively counting pools
                                                                                                         // with volume bigger than 1CORE
+            totalAllocPoint = totalAllocPoint.sub(poolInfo[pid].allocPoint).add(newAllocPoint); 
             poolInfo[pid].allocPoint = newAllocPoint;
         }
     }

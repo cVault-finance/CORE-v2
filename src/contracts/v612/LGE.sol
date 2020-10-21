@@ -661,8 +661,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         uint256 totalValueOfWrapper = balanceCOREWrappedTokenNow.div(tokenBeingWrappedPer1ETH).mul(1e18);
         uint256 totalValueOfCORE =  balanceCORENow.div(coreTokenPer1ETH).mul(1e18);
 
-        totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0: 
-                    totalValueOfCORE.sub(totalValueOfWrapper).div(coreTokenPer1ETH).mul(1e18);
+        totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0 :
+            totalValueOfCORE.sub(totalValueOfWrapper).mul(coreTokenPer1ETH).div(1e18);
 
 
         // send tokenwrap

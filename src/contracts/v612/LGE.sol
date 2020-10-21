@@ -361,7 +361,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
                 // We add wrapped token contributionsto the person this is for stats only
                 wrappedTokenContributed[msg.sender] = wrappedTokenContributed[msg.sender].add(tokenBeingWrappedBalChange);
                 // We check how much credit he got that returns from this function
-                totalCredit = totalCredit.add(  handleTokenBeingWrappedLiquidityAddition(tokenBeingWrappedBalChange,tokenBeingWrappedPer1ETH,coreTokenPer1ETH) );
+                totalCredit =   handleTokenBeingWrappedLiquidityAddition(tokenBeingWrappedBalChange,tokenBeingWrappedPer1ETH,coreTokenPer1ETH) ;
                 // We update reserves
                 wrappedTokenBalance = IERC20(tokenBeingWrapped).balanceOf(address(this));
                 COREBalance = IERC20(COREToken).balanceOf(address(this)); /// CHANGE
@@ -371,7 +371,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
              // Handling weth
             if(balWETH > 0){
                 totalETHContributed = totalETHContributed.add(balWETH);
-                totalCredit = handleWETHLiquidityAddition(balWETH,tokenBeingWrappedPer1ETH,coreTokenPer1ETH);
+                totalCredit = totalCredit.add( handleWETHLiquidityAddition(balWETH,tokenBeingWrappedPer1ETH,coreTokenPer1ETH) );
                 // No other number should be there since it just started a line above
                 COREBalance = IERC20(COREToken).balanceOf(address(this)); /// CHANGE
             }

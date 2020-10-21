@@ -34,6 +34,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
     beforeEach(async () => {
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
+        this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
     });
 
     it("Tests should fork from mainnet at a block number after the LGE is started and deployed", async () => {
@@ -61,6 +62,13 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         let coreTokenFromMainnet = await cv.core();
         assert(coreTokenFromMainnet == "0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7", "Sanity check for core token address failed on Core Vault")
     });
+
+    it("Should not let others extend LGE", async () => {
+        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+        await expectRevert(iLGE.extendLGE(1, { from: trashcan }), "LGE: MSG SENDER NOT REVERT");
+        await iLGE.extendLGE(1, { from: this.OxRevertMainnetAddress });
+    });
+
     it("Should handle LGE ending properly", async () => {
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;

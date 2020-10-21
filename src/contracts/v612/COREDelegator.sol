@@ -41,6 +41,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.so
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@nomiclabs/buidler/console.sol";
 import "./ICOREGlobals.sol";
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 
 contract COREDelegator is OwnableUpgradeSafe {
     using SafeMath for uint256;
@@ -206,9 +207,11 @@ contract COREDelegator is OwnableUpgradeSafe {
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
-    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal  returns (uint256 amountOut) {
-        require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
-        require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal view returns (uint256 amountOut) {
+        // fix revert on pairs with no volume
+        if(amountIn == 0) return 0;
+        if(reserveIn == 0 && reserveOut == 0) return 0;
+
         uint amountInWithFee = amountIn.mul(997);
         uint numerator = amountInWithFee.mul(reserveOut);
         uint denominator = reserveIn.mul(1000).add(amountInWithFee);
@@ -219,34 +222,33 @@ contract COREDelegator is OwnableUpgradeSafe {
                                             // In something thats not possible to manipulate
                                             // Or is it
 
+    function getCOREBottomPrice() public view returns (uint256 COREBottomInWETH) {
+        (uint256 COREReserves, uint256 WETHReserves,) = IUniswapV2Pair(ICOREGlobals(coreGlobalsAddress).COREWETHUniPair()).getReserves();
+        // 1e22 is 10k of 1e18
+        //1e22.sub(COREReserves) is total out
+        uint256 totalSellOfAllCORE = getAmountOut(uint256(1e22).sub(COREReserves) , COREReserves, WETHReserves);
+        COREBottomInWETH = WETHReserves.sub(totalSellOfAllCORE).div(1e4); //1e4 is 10k
+    }
 
-    // function getCOREBottomPrice() public view returns (uint256 COREBottomInWETH) {
-    //     (uint256 COREReserves, uint256 WETHReserves,) = IUniswapV2Pair(tokenUniswapPair).getReserves();
-    //     // 1e22 is 10k of 1e18
-    //     //1e22.sub(COREReserves) is total out
-    //     uint256 totalSellOfAllCORE = getAmountOut(1e22.sub(COREReserves) , COREReserves, WETHReserves);
-    //     COREBottomInWETH = WETHReserves.sub(totalSellOfAllCORE).div(1e4); //1e4 is 10k
-    // }
+    uint private lastBlockCOREBottomUpdate;
+    function updateCOREBottomPrice(bool forceUpdate) internal {
+        uint256 _coreBottomPriceFromETHPair = getCOREBottomPrice();
+        // Note its intended that it just doesnt update it and goes for old price
+        // To not block transfers
+        if(block.number > lastBlockCOREBottomUpdate.add(500) 
+                && forceUpdate ? true : _coreBottomPriceFromETHPair < coreBottomPriceFromETHPair.mul(13).div(10))
+                // We check here for bottom price change in case of manipulation
+                // I dont see a scenario this is legimate
+                // forceUpdate bypasses this check
+                {
+            coreBottomPriceFromETHPair = _coreBottomPriceFromETHPair;
+            lastBlockCOREBottomUpdate = block.number;
+        }
+    }
 
-    // uint private lastBlockCOREBottomUpdate;
-    // function updateCOREBottomPrice(bool forceUpdate) internal {
-    //     uint256 _coreBottomPriceFromETHPair = getCOREBottomPrice();
-    //     // Note its intended that it just doesnt update it and goes for old price
-    //     // To not block transfers
-    //     if(block.number > lastBlockCOREBottomUpdate.add(500) 
-    //             && forceUpdate ? true : _coreBottomPriceFromETHPair < coreBottomPriceFromETHPair.mul(13).div(10))
-    //             // We check here for bottom price change in case of manipulation
-    //             // I dont see a scenario this is legimate
-    //             // forceUpdate bypasses this check
-    //             {
-    //         coreBottomPriceFromETHPair = _coreBottomPriceFromETHPair;
-    //         lastBlockCOREBottomUpdate = block.number;
-    //     }
-    // }
-
-    // function forceUpdateBottomPrice() public onlyOwner {
-    //     updateCOREBottomPrice(true); 
-    // }
+    function forceUpdateBottomPrice() public onlyOwner {
+        updateCOREBottomPrice(true); 
+    }
 
     
     function sync(address token) public returns (bool isMint, bool isBurn) {

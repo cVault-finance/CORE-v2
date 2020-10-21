@@ -9,6 +9,13 @@ import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "./INBUNIERC20.sol";
 import "@nomiclabs/buidler/console.sol";
 
+interface ICOREGlobals {
+    function TransferHandler() external returns (address);
+}
+interface ICORETransferHandler{
+    function getVolumeOfTokenInCoreBottomUnits(address) external returns(uint256);
+}
+
 // Core Vault distributes fees equally amongst staked pools
 // Have fun reading it. Hopefully it's bug-free. God bless.
 contract CoreVault is OwnableUpgradeSafe {
@@ -146,10 +153,43 @@ contract CoreVault is OwnableUpgradeSafe {
             })
         );
     }
+    /////
+    /// NEW
+    ////
+    ICOREGlobals public coreGlobals;
+    // @notice : This function rebalances all pool rewards based on their volume reported by TransferHandler
+    // @notice : volume is in core bottom units. ( CORE bottom units in ETH)
+    // As of writing they are 1.15ETH or 1150000000000000000
+    // core bottom units continually, overflow would require core bottom units to be bigger than all eth out there
+    // so far appreciation of the core bottom is outpacing eth inflation
+    // TODO this is an expensive function to call - we might want ot think to reward people for calling it
+    function rebalancePoolAllocationPointsBasedOnVolume() public {
+        // get rid of all pending rewards from previous update
+        massUpdatePools();
+        // This is a safety feature
+
+        uint256 length = poolInfo.length;
+        // Loop over pools
+
+        for (uint256 pid = 0; pid < length; ++pid) {
+            uint256 newAllocPoint = ICORETransferHandler(coreGlobals.TransferHandler()).getVolumeOfTokenInCoreBottomUnits(address(poolInfo[pid].token));
+            totalAllocPoint = totalAllocPoint.sub(poolInfo[pid].allocPoint).add(newAllocPoint.div(1e18)); // Dividing by 1e18 is safe
+                                                                                                        // Effectively counting pools
+                                                                                                        // with volume bigger than 1CORE
+            poolInfo[pid].allocPoint = newAllocPoint;
+        }
+    }
+
+    function setCOREGlobalsAddress(address _coreGlobals) public onlyOwner {
+        coreGlobals = ICOREGlobals(_coreGlobals);
+    }
+
+    ////    /////
+    /// NEW ENDs
+    ////
 
     // Update the given pool's COREs allocation point. Can only be called by the owner.
         // Note contract owner is meant to be a governance contract allowing CORE governance consensus
-
     function set(
         uint256 _pid,
         uint256 _allocPoint,

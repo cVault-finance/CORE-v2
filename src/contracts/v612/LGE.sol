@@ -319,11 +319,10 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     // Added safety function to extend LGE in case multisig #2 isn't avaiable from emergency life events
     // TODO x3 add your key here
     function extendLGE(uint numHours) public {
-        require(msg.sender == 0xd5b47B80668840e7164C1D1d81aF8a9d9727B421,"LGE: MSG SENDER NOT REVERT");
+        require(msg.sender == 0xd5b47B80668840e7164C1D1d81aF8a9d9727B421 || msg.sender == 0xC91FE1ee441402D854B8F22F94Ddf66618169636, "LGE: Requires admin");
+        require(numHours <= 24);
         LGEDurationDays = LGEDurationDays.add(numHours.mul(1 hours));
-
     }
-
 
     function addLiquidityAtomic() public {
         console.log(" > LGE.sol::addLiquidityAtomic()");
@@ -617,11 +616,10 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         // 50000000000000/1e21 = 50
         CORERefundClaimed[msg.sender] = true;
         IERC20(COREToken).transfer(msg.sender,COREToRefundToThisPerson);
-
     }
 
-    function addLiquidityToPair(bool publicCall)  internal {
-        require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generaiton ongoing");
+    function addLiquidityToPair(bool publicCall) internal {
+        require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generation ongoing");
         require(LGEFinished == false, "LGE : Liquidity generation finished");
         
         // !!!!!!!!!!!

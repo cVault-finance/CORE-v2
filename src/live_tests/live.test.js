@@ -21,6 +21,8 @@ const cBTC = artifacts.require('cBTC');
 const CORE_VAULT_ADDRESS = "0xc5cacb708425961594b63ec171f4df27a9c0d8c9";
 const LGE_2_PROXY_ADDRESS = "0xf7cA8F55c54CbB6d0965BC6D65C43aDC500Bc591";
 const proxyAdmin_ADDRESS = "0x9cb1eeccd165090a4a091209e8c3a353954b1f0f";
+const CORE_GLOBALS_ADDRESS = "0x255ca4596a963883afe0ef9c85ea071cc050128b";
+const CORE_MULTISIG = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436"
 const ProxyAdminContract = artifacts.require('ProxyAdmin');
 const { advanceBlock, advanceTime, advanceTimeAndBlock } = require('./timeHelpers');
 
@@ -42,9 +44,23 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;
+        // Lge upgrading test
         this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
+        // proxy admin for upgrades
         let proxyAdmin = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
+        // We get the new coreglobals implementation
+        this.COREGLOBALS = await COREGlobals.new({ from: pervert });
+        // We get new transfer handler
+        this.CORETransferHandler = await COREDelegator.new({ from: pervert });
+        // we upgrade LGE and coreGlobals
         await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
+        await proxyAdmin.upgrade(CORE_GLOBALS_ADDRESS, this.COREGLOBALS.address, { from: this.owner })
+
+        //This is now upgraded
+        let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);
+        // we setnew transfer handler to transfer handler
+        await globalsLive.setTransferHandler(this.CORETransferHandler.address, { from: this.owner });
+
         assert(block_number > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
         let x3bal = await web3.eth.getBalance(x3);
         assert(x3bal == ether('100'), "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
@@ -65,11 +81,13 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
     it("Should not let others extend LGE", async () => {
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
-        await expectRevert(iLGE.extendLGE(1, { from: trashcan }), "LGE: MSG SENDER NOT REVERT");
+        await expectRevert(iLGE.extendLGE(1, { from: trashcan }), "LGE: Requires admin");
         await iLGE.extendLGE(1, { from: this.OxRevertMainnetAddress });
     });
 
-    it("Should handle LGE ending properly", async () => {
+    it("Should handle LGE ending properly", async function () {
+        this.timeout(60000)
+
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;
         block_timestamp = block.timestamp;
@@ -82,7 +100,12 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         assert(lgeOver == false, `LGE ended prematurely at ${block_timestamp}`);
 
         // Loop through advancing time 6 hours at a time until lgeOVER is true
-        const lgeEndTimestamp = 1603579592;
+        const second = 1;
+        const minute = 60 * second;
+        const hour = 60 * minute
+        const day = 24 * hour
+        const lgeEndTimestamp = parseInt(await iLGE.contractStartTimestamp()) + day * 7;
+        console.log(`LGE should end at ${lgeEndTimestamp}`)
         let dayNum = 0;
         const hoursPerBlockToSkip = 6;
         while (dayNum <= 8 * 24 / hoursPerBlockToSkip) {
@@ -127,7 +150,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         console.log(`Got wrapped cBTC (presumably) from ${wrappedTokenAddress}.`);
 
         // Before ending the LGE, you have to set the LGEAddress on cBTC...
-        await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: this.owner });
+        await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: CORE_MULTISIG });
 
         // Ok, end the LGE now
         console.log("Ok, end the LGE now");
@@ -135,12 +158,14 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await advanceByHours(3);
 
         let addLPE = await iLGE.addLiquidityToPairPublic({ from: rando }); // Why is this reverting?
-        console.log(addLPE);
+        let totalLPCreated = await iLGE.totalLPCreated();
+        console.log(`We created total of ${totalLPCreated} LP units thats is ${totalLPCreated / 1e18} LP tokens`);
+
 
         // Next, let's claim some LP from rando, who didn't actually contribute to the LGE
         console.log("Next, let's claim some LP from rando, who didn't actually contribute to the LGE");
-        let claimedLP = await iLGE.claimLP({ from: rando })
-        console.log(claimedLP);
+        await expectRevert(iLGE.claimLP({ from: rando }), "LEG : Nothing to claim.")
+        console.log("It reverts as expected")
 
     });
 

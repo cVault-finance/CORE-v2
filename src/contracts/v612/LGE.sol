@@ -244,7 +244,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         require(unitsContributed[msg.sender].sub(unitsClaimed[msg.sender]) > 0, "LEG : Nothing to claim");
 
         IUniswapV2Pair(wrappedTokenUniswapPair)
-            .transfer(msg.sender, unitsContributed[msg.sender].sub(getCORERefundForPerson(msg.sender)).mul(LPPerUnitContributed).div(1e8));
+            .transfer(msg.sender, unitsContributed[msg.sender].sub(getCORERefundForPerson(msg.sender))
+                .mul(LPPerUnitContributed).div(1e8));
             // LPPerUnitContributed is stored at 1e8 multiplied
 
         unitsClaimed[msg.sender] = unitsContributed[msg.sender];

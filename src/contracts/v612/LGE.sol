@@ -171,7 +171,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
                                       // Was noted and decided that the impact of this is not-significant
     uint256 public totalLPCreated;    
     uint256 private totalUnitsContributed;
-    uint256 public LPPerUnitContributed; // stored as 1e8 more - this is done for change
+    uint256 public LPPerUnitContributed; // stored as 1e18 more - this is done for change
     ////////////////////////////////////////
 
 
@@ -244,9 +244,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         require(unitsContributed[msg.sender].sub(unitsClaimed[msg.sender]) > 0, "LEG : Nothing to claim");
 
         IUniswapV2Pair(wrappedTokenUniswapPair)
-            .transfer(msg.sender, unitsContributed[msg.sender].sub(getCORERefundForPerson(msg.sender))
-                .mul(LPPerUnitContributed).div(1e8));
-            // LPPerUnitContributed is stored at 1e8 multiplied
+            .transfer(msg.sender, unitsContributed[msg.sender].sub(getCORERefundForPerson(msg.sender)).mul(LPPerUnitContributed).div(1e18));
+            // LPPerUnitContributed is stored at 1e18 multiplied
 
         unitsClaimed[msg.sender] = unitsContributed[msg.sender];
     }
@@ -320,11 +319,10 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     // Added safety function to extend LGE in case multisig #2 isn't avaiable from emergency life events
     // TODO x3 add your key here
     function extendLGE(uint numHours) public {
-        require(msg.sender == 0xd5b47B80668840e7164C1D1d81aF8a9d9727B421,"LGE: MSG SENDER NOT REVERT");
+        require(msg.sender == 0xd5b47B80668840e7164C1D1d81aF8a9d9727B421 || msg.sender == 0xC91FE1ee441402D854B8F22F94Ddf66618169636, "LGE: Requires admin");
+        require(numHours <= 24);
         LGEDurationDays = LGEDurationDays.add(numHours.mul(1 hours));
-
     }
-
 
     function addLiquidityAtomic() public {
         console.log(" > LGE.sol::addLiquidityAtomic()");
@@ -618,11 +616,10 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         // 50000000000000/1e21 = 50
         CORERefundClaimed[msg.sender] = true;
         IERC20(COREToken).transfer(msg.sender,COREToRefundToThisPerson);
-
     }
 
-    function addLiquidityToPair(bool publicCall)  internal {
-        require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generaiton ongoing");
+    function addLiquidityToPair(bool publicCall) internal {
+        require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generation ongoing");
         require(LGEFinished == false, "LGE : Liquidity generation finished");
         
         // !!!!!!!!!!!
@@ -662,8 +659,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         uint256 totalValueOfWrapper = balanceCOREWrappedTokenNow.div(tokenBeingWrappedPer1ETH).mul(1e18);
         uint256 totalValueOfCORE =  balanceCORENow.div(coreTokenPer1ETH).mul(1e18);
 
-        totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0: 
-                    totalValueOfCORE.sub(totalValueOfWrapper).div(coreTokenPer1ETH).mul(1e18);
+        totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0 :
+            totalValueOfCORE.sub(totalValueOfWrapper).mul(coreTokenPer1ETH).div(1e18);
 
 
         // send tokenwrap
@@ -679,8 +676,9 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         totalLPCreated = IUniswapV2Pair(wrappedTokenUniswapPair).balanceOf(address(this));
 
         // calculate minted per contribution
-        LPPerUnitContributed = totalLPCreated.mul(1e8).div(totalUnitsContributed.sub(totalCOREToRefund)); // Stored as 1e8 more for round erorrs and change
+        LPPerUnitContributed = totalLPCreated.mul(1e18).div(totalUnitsContributed.sub(totalCOREToRefund)); // Stored as 1e18 more for round erorrs and change
                                                                                // Remove refunded from the total
+        require(LPPerUnitContributed > 0, "LP Per Unit Contribute Must be above Zero");
         // set LGE to complete
         LGEFinished = true;
 

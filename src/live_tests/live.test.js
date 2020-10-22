@@ -160,7 +160,13 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         let addLPE = await iLGE.addLiquidityToPairPublic({ from: rando }); // Why is this reverting?
         let totalLPCreated = await iLGE.totalLPCreated();
         console.log(`We created total of ${totalLPCreated} LP units thats is ${totalLPCreated / 1e18} LP tokens`);
-
+        // unitsContributed[msg.sender].sub(getCORERefundForPerson(msg.sender)).mul(LPPerUnitContributed).div(1e18));
+        // Lets say we contributed 1 unit so we shoul dget
+        const getFor1CORE = 1e18 * (await iLGE.LPPerUnitContributed()) / 1e18
+        console.log(`Total per unit contribute (1CORE) is ${getFor1CORE}LP Units so ${getFor1CORE / 1e18} LP token`)
+        console.log(`So if we divide it by 820 which is about the value in core contributed rn =
+         ${getFor1CORE / 1e18 * 820} LP`)
+        console.log(`We are refunding total of ${await iLGE.totalCOREToRefund() / 1e18} CORE`)
 
         // Next, let's claim some LP from rando, who didn't actually contribute to the LGE
         console.log("Next, let's claim some LP from rando, who didn't actually contribute to the LGE");

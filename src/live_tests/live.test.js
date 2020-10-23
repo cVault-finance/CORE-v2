@@ -47,6 +47,8 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;
+        // Lge upgrading test
+        this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
         // proxy admin for upgrades
         let proxyAdmin = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
         // We get new transfer handler
@@ -57,6 +59,9 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // We check units of someone here
         const preUpgradeUnitsOfRandomPerson = await iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
         const preUpgradeTimestampStart = await iLGE.contractStartTimestamp();
+
+        // We upgrade
+        await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
 
         // We sanity check units again after upgrade in case of a memory error
         const postUpgradeUnitsOfRandomPerson = await iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');

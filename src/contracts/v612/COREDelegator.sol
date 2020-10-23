@@ -58,7 +58,7 @@ contract COREDelegator is OwnableUpgradeSafe {
 
     /// dummy fortests 
     function handleTransfer(address from, address to, uint256 amount) public {
-
+        // require(false, "got to handleTransfer");
     }
 
     PossibleStates constant defaultState = PossibleStates.DEFAULT;
@@ -284,20 +284,21 @@ contract COREDelegator is OwnableUpgradeSafe {
 
     
     function sync(address token) public returns (bool isMint, bool isBurn) {
-        TokenInfo memory currentToken = _tokens[token];
+        // require(false,"Got to sync");
+        // TokenInfo memory currentToken = _tokens[token];
+        return(false, false);
+        // // This will update the state of lastIsMint, when called publically
+        // // So we have to sync it before to the last LP token value.
+        // uint256 _LPSupplyOfPairTotal = IERC20(currentToken.uniswapPair).totalSupply();
+        // isBurn = currentToken.lastTotalSupplyOfLPTokens > _LPSupplyOfPairTotal;
 
-        // This will update the state of lastIsMint, when called publically
-        // So we have to sync it before to the last LP token value.
-        uint256 _LPSupplyOfPairTotal = IERC20(currentToken.uniswapPair).totalSupply();
-        isBurn = currentToken.lastTotalSupplyOfLPTokens > _LPSupplyOfPairTotal;
+        // // TODO: what sets isMint?
 
-        // TODO: what sets isMint?
+        // if(isBurn == false) { // further more indepth checks
 
-        if(isBurn == false) { // further more indepth checks
+        // }
 
-        }
-
-        _tokens[token].lastTotalSupplyOfLPTokens = _LPSupplyOfPairTotal;
+        // _tokens[token].lastTotalSupplyOfLPTokens = _LPSupplyOfPairTotal;
 
     }
 

@@ -104,7 +104,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         const minute = 60 * second;
         const hour = 60 * minute
         const day = 24 * hour
-        const lgeEndTimestamp = parseInt(await iLGE.contractStartTimestamp()) + day * 7;
+        const lgeEndTimestamp = parseInt(await iLGE.contractStartTimestamp()) + day * 7 + 30 * minute;
         console.log(`LGE should end at ${lgeEndTimestamp}`)
         let dayNum = 0;
         const hoursPerBlockToSkip = 6;

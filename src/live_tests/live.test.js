@@ -110,9 +110,12 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         const hoursPerBlockToSkip = 6;
         while (dayNum <= 8 * 24 / hoursPerBlockToSkip) {
             await advanceByHours(hoursPerBlockToSkip);
+            await advanceBlock();
+
             const blockTimestamp = (await web3.eth.getBlock("latest")).timestamp;
             let lgeOVER = await iLGE.isLGEOver();
             if (blockTimestamp > lgeEndTimestamp) {
+
                 // Reached beyond the end point of the LGE
                 assert(lgeOVER, `LGE should have ended by ${blockTimestamp}`)
                 dayNum = 1e20; // early exit

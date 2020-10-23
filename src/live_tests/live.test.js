@@ -55,10 +55,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.CORETransferHandler = await COREDelegator.new({ from: pervert });
         // we upgrade LGE
         await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
-<<<<<<< HEAD
         // await proxyAdmin.upgrade(CORE_GLOBALS_ADDRESS, this.COREGLOBALS.address, { from: this.owner })
-=======
->>>>>>> e455ad227538030bd71a8ccb3528d0455f44684a
 
         //This is now upgraded
         let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);
@@ -98,6 +95,20 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         console.log(`timestamp: ${block_timestamp}`);
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         let lgeOver = await iLGE.isLGEOver();
+
+        this.ETH_CORE_PAIR = await UniV2Pair.at(CORE_ETH_PAIR_ADDRESS);
+        this.ETH_WBTC_PAIR = await UniV2Pair.at(WBTC_ETH_PAIR_ADDRESS);
+        const { _reserve0: coreReserve, _reserve1: wethReserveInCorePair } = await this.ETH_CORE_PAIR.getReserves();
+        const { _reserve0: wbtcReserve, _reserve1: wethReserveInWbtcPair } = await this.ETH_WBTC_PAIR.getReserves();
+        const ETHperCORE = (wethReserveInCorePair / 1e18) / (coreReserve / 1e18);
+        const ETHperWBTC = (wethReserveInWbtcPair / 1e18) / (wbtcReserve / 1e8);
+
+        //Contribute 1 ETH
+
+        await iLGE.addLiquidityETH({ from: joe, value: 1e18 });
+        const shouldHaveGottenCOREUnits = 1e18 / ETHperCORE;
+
+
 
         // Sanity test, LGE shouldn't be over when performing this test from the most recent block.
         // If this fails then the LGE already ended and everyone is cheering, rah rah!
@@ -164,12 +175,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // Advance another 3 hours to make sure the grace period passed
         await advanceByHours(3);
 
-        this.ETH_CORE_PAIR = await UniV2Pair.at(CORE_ETH_PAIR_ADDRESS);
-        this.ETH_WBTC_PAIR = await UniV2Pair.at(WBTC_ETH_PAIR_ADDRESS);
-        const { _reserve0: coreReserve, _reserve1: wethReserveInCorePair } = await this.ETH_CORE_PAIR.getReserves();
-        const { _reserve0: wbtcReserve, _reserve1: wethReserveInWbtcPair } = await this.ETH_WBTC_PAIR.getReserves();
-        const ETHperCORE = (wethReserveInCorePair / 1e18) / (coreReserve / 1e18);
-        const ETHperWBTC = (wethReserveInWbtcPair / 1e18) / (wbtcReserve / 1e8);
+
 
 
         let addLPE = await iLGE.addLiquidityToPairPublic({ from: rando }); // Why is this reverting?
@@ -199,6 +205,12 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await expectRevert(iLGE.claimLP({ from: rando }), "LEG : Nothing to claim.")
         console.log("It reverts as expected")
 
+        const joeGotCoreUnits = await iLGE.unitsContributed(joe)
+        assert((shouldHaveGottenCOREUnits * 1.1) > joeGotCoreUnits || (shouldHaveGottenCOREUnits * 0.9) < joeGotCoreUnits, "Joe got a mismatched 10% from actual")
+        console.log("Eth contribution from joe test pass (10% max deviation form current)")
+        await iLGE.claimLP({ from: joe });
+
+        console.log("Joe can claim LP")
     });
 
 

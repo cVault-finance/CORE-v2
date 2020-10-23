@@ -18,6 +18,9 @@ const COREGlobals = artifacts.require('COREGlobals');
 const COREDelegator = artifacts.require('COREDelegator');
 const cBTC = artifacts.require('cBTC');
 
+
+const WBTC_ETH_PAIR_ADDRESS = "0xbb2b8038a1640196fbe3e38816f3e67cba72d940"
+const CORE_ETH_PAIR_ADDRESS = "0x32ce7e48debdccbfe0cd037cc89526e4382cb81b"
 const CORE_VAULT_ADDRESS = "0xc5cacb708425961594b63ec171f4df27a9c0d8c9";
 const LGE_2_PROXY_ADDRESS = "0xf7cA8F55c54CbB6d0965BC6D65C43aDC500Bc591";
 const proxyAdmin_ADDRESS = "0x9cb1eeccd165090a4a091209e8c3a353954b1f0f";
@@ -54,7 +57,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.CORETransferHandler = await COREDelegator.new({ from: pervert });
         // we upgrade LGE and coreGlobals
         await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
-        await proxyAdmin.upgrade(CORE_GLOBALS_ADDRESS, this.COREGLOBALS.address, { from: this.owner })
+        // await proxyAdmin.upgrade(CORE_GLOBALS_ADDRESS, this.COREGLOBALS.address, { from: this.owner })
 
         //This is now upgraded
         let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);
@@ -104,13 +107,13 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         const minute = 60 * second;
         const hour = 60 * minute
         const day = 24 * hour
-        const lgeEndTimestamp = parseInt(await iLGE.contractStartTimestamp()) + day * 7;
+        const lgeEndTimestamp = parseInt(await iLGE.contractStartTimestamp()) + day * 7 + 30 * minute;
         console.log(`LGE should end at ${lgeEndTimestamp}`)
         let dayNum = 0;
         const hoursPerBlockToSkip = 6;
         while (dayNum <= 8 * 24 / hoursPerBlockToSkip) {
             await advanceByHours(hoursPerBlockToSkip);
-            await advanceBlock();
+
 
             const blockTimestamp = (await web3.eth.getBlock("latest")).timestamp;
             let lgeOVER = await iLGE.isLGEOver();
@@ -160,6 +163,14 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // Advance another 3 hours to make sure the grace period passed
         await advanceByHours(3);
 
+        this.ETH_CORE_PAIR = await UniV2Pair.at(CORE_ETH_PAIR_ADDRESS);
+        this.ETH_WBTC_PAIR = await UniV2Pair.at(WBTC_ETH_PAIR_ADDRESS);
+        const { _reserve0: coreReserve, _reserve1: wethReserveInCorePair } = await this.ETH_CORE_PAIR.getReserves();
+        const { _reserve0: wbtcReserve, _reserve1: wethReserveInWbtcPair } = await this.ETH_WBTC_PAIR.getReserves();
+        const ETHperCORE = (wethReserveInCorePair / 1e18) / (coreReserve / 1e18);
+        const ETHperWBTC = (wethReserveInWbtcPair / 1e18) / (wbtcReserve / 1e8);
+
+
         let addLPE = await iLGE.addLiquidityToPairPublic({ from: rando }); // Why is this reverting?
         let totalLPCreated = await iLGE.totalLPCreated();
         console.log(`We created total of ${totalLPCreated} LP units thats is ${totalLPCreated / 1e18} LP tokens`);
@@ -170,7 +181,18 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         console.log(`So if we divide it by 820 which is about the value in core contributed rn =
          ${getFor1CORE / 1e18 * 820} LP`)
         console.log(`We are refunding total of ${await iLGE.totalCOREToRefund() / 1e18} CORE`)
+        const CORE_CBTC_PAIR_ADDRESS = await iLGE.wrappedTokenUniswapPair();
 
+        const CORE_CBTC_PAIR = await UniV2Pair.at(CORE_CBTC_PAIR_ADDRESS);
+        console.log(`cBTC/CORE pair is  at ${CORE_CBTC_PAIR_ADDRESS}`);
+        const { _reserve0: coreReserveCBTCPair, _reserve1: cBTCReserve } = await CORE_CBTC_PAIR.getReserves();
+        console.log(`Reserves of CORE  in new pair ${coreReserveCBTCPair / 1e18} and reserve of cBTC ${cBTCReserve / 1e8}`);
+        const valueOFCOREINNEWPAIR = coreReserveCBTCPair / 1e18 * ETHperCORE;
+        const valueofWBTCINHTENEWPAIR = cBTCReserve / 1e8 * ETHperWBTC;
+
+        console.log(`LIVE ETH per CORE ${ETHperCORE} ETH per WBTC ${ETHperWBTC}`);
+        console.log(`Price of cBTC reserves in pair  ${valueOFCOREINNEWPAIR}ETH value of all  CORE in the pair ${valueofWBTCINHTENEWPAIR}ETH`)
+        console.log(`Price delta ${((valueOFCOREINNEWPAIR < valueofWBTCINHTENEWPAIR ? valueofWBTCINHTENEWPAIR / valueOFCOREINNEWPAIR : valueOFCOREINNEWPAIR / valueofWBTCINHTENEWPAIR) * 100) - 100}%`)
         // Next, let's claim some LP from rando, who didn't actually contribute to the LGE
         console.log("Next, let's claim some LP from rando, who didn't actually contribute to the LGE");
         await expectRevert(iLGE.claimLP({ from: rando }), "LEG : Nothing to claim.")

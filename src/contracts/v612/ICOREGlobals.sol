@@ -11,7 +11,7 @@ interface ICOREGlobals {
     function COREVaultAddress() external returns (address);
     function COREWETHUniPair() external view returns (address);
     function UniswapFactory() external view returns (address);
-    function transferHandler() external view returns (address);
+    function TransferHandler() external view returns (address);
     function addDelegatorStateChangePermission(address that, bool status) external;
     function isStateChangeApprovedContract(address that)  external view returns (bool);
 }

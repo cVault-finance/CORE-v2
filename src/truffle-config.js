@@ -11,10 +11,10 @@ module.exports = {
       version: "0.6.12",
       docker: false,
       settings: {
-       optimizer: {
-         enabled: true,
-         runs: 999999
-       }
+        optimizer: {
+          enabled: true,
+          runs: 999999
+        }
       }
     }
   }

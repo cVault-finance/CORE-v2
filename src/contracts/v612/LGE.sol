@@ -122,7 +122,7 @@ interface CERC95 {
 
 
 interface ICORETransferHandler {
-    function sync(address) external;
+    function sync(address) external returns(bool,bool);
 }
 
 contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
@@ -669,6 +669,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         // send core without the refund
         IERC20(COREToken).transfer(wrappedTokenUniswapPair, balanceCORENow.sub(totalCOREToRefund));
 
+        require(IUniswapV2Pair(wrappedTokenUniswapPair).totalSupply() == 0, "Somehow total supply is higher, sanity fail");
         // mint LP to this adddress
         IUniswapV2Pair(wrappedTokenUniswapPair).mint(address(this));
 
@@ -683,8 +684,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         LGEFinished = true;
 
         //sync the tokens
-        ICORETransferHandler(coreGlobals.transferHandler()).sync(wrappedToken);
-        ICORETransferHandler(coreGlobals.transferHandler()).sync(COREToken);
+        ICORETransferHandler(coreGlobals.TransferHandler()).sync(wrappedToken);
+        ICORETransferHandler(coreGlobals.TransferHandler()).sync(COREToken);
 
     }
     

@@ -54,8 +54,20 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // We get new transfer handler
         this.CORETransferHandler = await COREDelegator.new({ from: pervert });
         // we upgrade LGE
+        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+
+        // We check units of someone here
+        const preUpgradeUnitsOfRandomPerson = await iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
+        const preUpgradeTimestampStart = await iLGE.contractStartTimestamp();
+
+        // We upgrade
         await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
-        // await proxyAdmin.upgrade(CORE_GLOBALS_ADDRESS, this.COREGLOBALS.address, { from: this.owner })
+
+        // We sanity check units again after upgrade in case of a memory error
+        const postUpgradeUnitsOfRandomPerson = await iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
+        const postUpgradeTimestampStart = await iLGE.contractStartTimestamp();
+        assert(parseInt(preUpgradeUnitsOfRandomPerson) == parseInt(postUpgradeUnitsOfRandomPerson), "Mismatch units after upgrade mem error");
+        assert(parseInt(preUpgradeTimestampStart) == parseInt(postUpgradeTimestampStart), "Mismatch units after upgrade mem error");
 
         //This is now upgraded
         let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);

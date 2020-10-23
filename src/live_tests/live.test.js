@@ -48,17 +48,13 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         let block = await web3.eth.getBlock("latest")
         block_number = block.number;
         // Lge upgrading test
-        this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
+        // this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
         // proxy admin for upgrades
         let proxyAdmin = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
         // We get new transfer handler
         this.CORETransferHandler = await COREDelegator.new({ from: pervert });
         // we upgrade LGE
-        await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
-<<<<<<< HEAD
-        // await proxyAdmin.upgrade(CORE_GLOBALS_ADDRESS, this.COREGLOBALS.address, { from: this.owner })
-=======
->>>>>>> e455ad227538030bd71a8ccb3528d0455f44684a
+        // await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner })
 
         //This is now upgraded
         let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);

@@ -468,6 +468,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     }
 
 
+
     function getHowMuch1WETHBuysOfTokens() public view returns (uint256 tokenBeingWrappedPer1ETH, uint256 coreTokenPer1ETH) {
         return (getAveragePriceLast20Blocks(address(tokenBeingWrapped)), getAveragePriceLast20Blocks(COREToken));
     }
@@ -596,7 +597,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     // re-entrancy protection [x]
     // dev tax [x]
     function addLiquidityToPairPublic() nonReentrant public{
-        addLiquidityToPair(true);
+        addLiquidityToPair(true,0,0);
     }
 
     // 1000 finey in 1 eth
@@ -717,8 +718,9 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     // This is in case someone manipulates the 20 liquidity addition blocks 
     // and screws up the ratio
     // Allows admins 2 hours to rescue the contract.
-    function addLiquidityToPairAdmin() nonReentrant onlyOwner public{
-        addLiquidityToPair(false);
+    function addLiquidityToPairAdmin(uint256 ratio1ETHWholeBuysXCOREUnits, uint256 ratio1ETHWholeBuysXWrappedTokenUnits)
+         nonReentrant onlyOwner public{
+        addLiquidityToPair(false,ratio1ETHWholeBuysXCOREUnits, ratio1ETHWholeBuysXWrappedTokenUnits);
     }
     
     function getCORERefundForPerson(address guy) public view returns (uint256) {
@@ -748,7 +750,16 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         IERC20(COREToken).transfer(msg.sender,COREToRefundToThisPerson);
     }
 
-    function addLiquidityToPair(bool publicCall) internal {
+    function notMoreThan4PercentDeltaFromCurrentPrice(address pair, uint256 amtOutPer1ETH) internal  {
+        (uint256 reserveWETHofWrappedTokenPair, uint256 reserveTokenofWrappedTokenPair) = getPairReserves(preWrapEthPair);
+        uint256 outTokenFor1WETH = COREIUniswapV2Library.getAmountOut(1e18, reserveWETHofWrappedTokenPair, reserveTokenofWrappedTokenPair);
+        require(amtOutPer1ETH.mul(104) > outTokenFor1WETH.mul(100) 
+                && outTokenFor1WETH.mul(100) <  amtOutPer1ETH.mul(96), 
+                  "LGE : Delta of balances is too big from actual (4% or more)");
+    }
+
+    function addLiquidityToPair(bool publicCall, uint256 ratio1ETHWholeBuysXCOREUnits, uint256 ratio1ETHWholeBuysXWrappedTokenUnits)
+     internal {
         require(block.timestamp > contractStartTimestamp.add(LGEDurationDays).add(publicCall ? 2 hours : 0), "LGE : Liquidity generation ongoing");
         require(LGEFinished == false, "LGE : Liquidity generation finished");
         
@@ -786,11 +797,30 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
 
         ( uint256 tokenBeingWrappedPer1ETH, uint256 coreTokenPer1ETH)  = getHowMuch1WETHBuysOfTokens();
 
-        uint256 totalValueOfWrapper = balanceCOREWrappedTokenNow.div(tokenBeingWrappedPer1ETH).mul(1e18);
-        uint256 totalValueOfCORE =  balanceCORENow.div(coreTokenPer1ETH).mul(1e18);
+ 
 
-        totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0 :
-            totalValueOfCORE.sub(totalValueOfWrapper).mul(coreTokenPer1ETH).div(1e18);
+        if(publicCall == false){ // admin added ratio
+            
+            notMoreThan4PercentDeltaFromCurrentPrice(preWrapEthPair, ratio1ETHWholeBuysXWrappedTokenUnits);
+            notMoreThan4PercentDeltaFromCurrentPrice(coreEthPair, ratio1ETHWholeBuysXCOREUnits);
+
+            uint256 totalValueOfWrapper = balanceCOREWrappedTokenNow.div(ratio1ETHWholeBuysXWrappedTokenUnits).mul(1e18);
+            uint256 totalValueOfCORE =  balanceCORENow.div(ratio1ETHWholeBuysXCOREUnits).mul(1e18);
+
+            totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0 :
+                totalValueOfCORE.sub(totalValueOfWrapper).mul(coreTokenPer1ETH).div(1e18);
+
+        }else{
+            notMoreThan4PercentDeltaFromCurrentPrice(preWrapEthPair, tokenBeingWrappedPer1ETH);
+            notMoreThan4PercentDeltaFromCurrentPrice(coreEthPair, coreTokenPer1ETH);
+
+            uint256 totalValueOfWrapper = balanceCOREWrappedTokenNow.div(tokenBeingWrappedPer1ETH).mul(1e18);
+            uint256 totalValueOfCORE =  balanceCORENow.div(coreTokenPer1ETH).mul(1e18);
+
+            totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0 :
+                totalValueOfCORE.sub(totalValueOfWrapper).mul(coreTokenPer1ETH).div(1e18);
+        }
+  
 
 
         // send tokenwrap

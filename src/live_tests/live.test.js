@@ -218,7 +218,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         console.log("It reverts as expected")
 
         const joeGotCoreUnits = await iLGE.unitsContributed(joe)
-        assert((shouldHaveGottenCOREUnits * 1.1) > joeGotCoreUnits || (shouldHaveGottenCOREUnits * 0.9) < joeGotCoreUnits, "Joe got a mismatched 10% from actual")
+        assert((shouldHaveGottenCOREUnits * 1.1) > joeGotCoreUnits && (shouldHaveGottenCOREUnits * 0.9) < joeGotCoreUnits, "Joe got a mismatched 10% from actual")
         console.log("Eth contribution from joe test pass (10% max deviation form current)")
         await iLGE.claimLP({ from: joe });
 

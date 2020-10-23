@@ -12,7 +12,7 @@ yarn run buidler remove-logs
 npx truffle-flattener contracts/v612/LGE.sol >> ./flattened_LGE.sol
 rm -rf contracts
 mkdir -p contracts/v612
-mv ./flattened_LGE.sol contracts/v612
+mv ./flattened_LGE.sol contracts/v612/LGE.sol
 pause
 npx truffle compile
 # mkdir -p flattened_sols

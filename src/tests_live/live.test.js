@@ -49,40 +49,6 @@ const GAS_LIMIT = 0x1fffffffffffff;
 
 const axios = require('axios').default;
 
-/*const ganachecli = require("ganache-cli");
-const server = ganachecli.server();
-console.log("listen....")
-server.listen(8545, function(err, blockchain) {
-    console.log("server listen cb");
-    console.log(err);
-    console.log(blockchain);
-});*/
-
-
-
-
-/*const { web3 } = require('hardhat');
-
-const send = (method, params = []) => new Promise((resolve, reject) => {
-  web3.currentProvider.send(
-    { jsonrpc: '2.0', id: Date.now(), method, params },
-    (err, res) => err ? reject(err) : resolve(res),
-  );
-});
-
-const takeSnapshot = async () => {
-  const { result } = await send('evm_snapshot');
-  return result;
-};
-
-const revertToSnapshot = async id => send('evm_revert', [id]);
-
-module.exports = {
-  takeSnapshot,
-  revertToSnapshot,
-};*/
-
-
 const send = (method, params = []) => new Promise((resolve, reject) => {
     web3.currentProvider.send(
         { jsonrpc: '2.0', id: Date.now(), method, params },
@@ -99,50 +65,22 @@ const revertToSnapshot = async id => send('evm_revert', [id]);
 
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
-    before(async () => {
-        // Get the latest mainnet block number
-        let infura_pid = process.env.INFURAPID;
-        let url = `https://mainnet.infura.io/v3/${infura_pid}`;
-        const data = { "jsonrpc": "2.0", "method": "eth_blockNumber", "params": [], "id": 83 };
-        let blockinfo = await axios.post(url, data);
-        this.test_block_num = parseInt(Number(blockinfo.data.result), 10);
-        console.log(`latest block: ${this.test_block_num}`);
-        this.snapshotId = await snapshot.takeSnapshot();
-    })
-
-    it("Sanity test for Ganache", async () => {
-        /*let infura_pid = process.env.INFURAPID;
-        await network.provider.request({
-            method: "evm_snapshot",
-            params: [{
-                forking: {
-                    jsonRpcUrl: `https://mainnet.infura.io/v3/${infura_pid}`,
-                    blockNumber: this.test_block_num
-                }
-            }]
-        })*/
-        
+    it("Sanity test for Ganache", async function() {
         let actual_test_block = (await web3.eth.getBlock("latest")).number;
         console.log(actual_test_block);
         console.log(`BLOCK NUMBER: ${this.test_block_num}\nACTUAL BLCOK NUMBER: ${actual_test_block}`);
         assert(actual_test_block > 11088005, "Test environment problem 1");
-        // assert(actual_test_block == this.test_block_num, "Test environment problem 2");
     });
-    // beforeEach(async () => {
-    //     this.snapshotId = await snapshot.takeSnapshot();
-    // });
     afterEach(async function () {
+        console.log(`Reverting to snapshot ${this.snapshotId}`);
         await snapshot.revertToSnapshot(this.snapshotId);
     });
 
-    beforeEach(async () => {
-        // this.snapshotId = await snapshot.takeSnapshot();
+    beforeEach(async function() {
+        this.snapshotId = await snapshot.takeSnapshot();
+        console.log(`Took snapshot ${this.snapshotId}`);
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
-        // this.CORETransferHandler = await TransferHandler01.new({ from: pervert });
-        //This is now upgraded
-        // let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);
-        // we setnew transfer handler to transfer handler
 
         // await globalsLive.setTransferHandler(this.CORETransferHandler.address, { from: this.owner });
         this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
@@ -202,7 +140,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         assert(coreTokenFromMainnet == "0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7", "Sanity check for core token address failed on Core Vault")
     });
 
-    it("Should not let others extend LGE", async () => {
+    it("Should not let others extend LGE", async function() {
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         await expectRevert(iLGE.extendLGE(1, { from: trashcan }), "LGE: Requires admin");
         await iLGE.extendLGE(1, { from: this.OxRevertMainnetAddress });

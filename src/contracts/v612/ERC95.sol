@@ -48,8 +48,8 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@nomiclabs/buidler/console.sol";
 import "@openzeppelin/contracts/GSN/Context.sol";
+import "hardhat/console.sol";
 
 contract ERC95 is Context, IERC20 {     // XXXXX Ownable is new
     using SafeMath for uint256;

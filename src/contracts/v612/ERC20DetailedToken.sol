@@ -1,5 +1,6 @@
 pragma solidity >=0.6.0;
-import "@nomiclabs/buidler/console.sol";
+import "hardhat/console.sol";
+
 
 
 /*

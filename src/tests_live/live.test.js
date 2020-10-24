@@ -5,6 +5,7 @@ const { inTransaction } = require('@openzeppelin/test-helpers/src/expectEvent');
 const { assertion } = require('@openzeppelin/test-helpers/src/expectRevert');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const ganache = require("ganache-core");
+const hre = require("hardhat");
 
 const WETH9 = artifacts.require('WETH9');
 const UniV2Pair = artifacts.require("UniswapV2Pair");
@@ -43,32 +44,45 @@ const advanceByHours = async (hours) => {
 const MAX_53_BIT = 4503599627370495;
 const GAS_LIMIT = 0x1fffffffffffff;
 
-const ganachecli = require("ganache-cli");
+const axios = require('axios').default;
+
+/*const ganachecli = require("ganache-cli");
 const server = ganachecli.server();
 console.log("listen....")
 server.listen(8545, function(err, blockchain) {
     console.log("server listen cb");
     console.log(err);
     console.log(blockchain);
-});
+});*/
 
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
-    beforeEach(async () => {
-        // Rebuild and fork from ganache
-        // web3.setProvider(ganache.provider());
 
+    before(async () => {
+        // Get the latest mainnet block number
+        let infura_pid = process.env.INFURAPID;
+        let url = `https://mainnet.infura.io/v3/${infura_pid}`;
+        const data = {"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":83};
+        let blockinfo = await axios.post(url, data);
+        this.test_block_num = parseInt(Number(blockinfo.data.result), 10);
+        console.log(`latest block: ${this.test_block_num}`);
     })
-    afterEach(async () => {
-        // Tear down ganache
 
-    })
     it("Sanity test for Ganache", async () => {
-        let block = await web3.eth.getBlock("latest")
-        block_number = block.number;
-
-        assert(block_number > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
+        await network.provider.request({
+            method: "hardhat_reset",
+            params: [{
+              forking: {
+                jsonRpcUrl: "https://eth-mainnet.alchemyapi.io/v2/<key>",
+                blockNumber: this.test_block_num
+              }
+            }]
+          })
+        let actual_test_block = await web3.eth.getBlock("latest")
+        console.log(`BLOCK NUMBER: ${this.test_block_num}`);
+        assert(actual_test_block > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
+        assert(actual_test_block == this.test_block_num, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
     });
-/*
+
     beforeEach(async () => {
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
@@ -76,6 +90,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         //This is now upgraded
         let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);
         // we setnew transfer handler to transfer handler
+
         await globalsLive.setTransferHandler(this.CORETransferHandler.address, { from: this.owner });
         this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
@@ -470,7 +485,6 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         assert((await WBTCContract.balanceOf(pervert)) == 6e8.toString(), "Wrong balance underlying after unwrap"); // 6 -1 +1 =6
 
     });
-*/
 
 
 });

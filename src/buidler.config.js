@@ -3,6 +3,7 @@ usePlugin('buidler-log-remover');
 usePlugin("@nomiclabs/buidler-ganache");
 
 module.exports = {
+  solidity: "0.6.12",
   solc: {
     version: "0.6.12",
     optimizer: {
@@ -21,7 +22,7 @@ module.exports = {
   paths: {
     sources: "./contracts/v612",
   },
-  /*defaultNetwork: "ganache",
+  defaultNetwork: "ganache",
   networks: {
     ganache: {
       gasLimit: 6000000000,
@@ -30,5 +31,5 @@ module.exports = {
       fork_block: 11088006,
       fork: "https://mainnet.infura.io/v3/2bb161be6f8d454f9cddc9a2d61fc211@11088006"
     }
-  }*/
+  }
 };

@@ -4,6 +4,8 @@ const { expectRevert, time, BN, ether, balance } = require('@openzeppelin/test-h
 const { inTransaction } = require('@openzeppelin/test-helpers/src/expectEvent');
 const { assertion } = require('@openzeppelin/test-helpers/src/expectRevert');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
+const ganache = require("ganache-core");
+
 const WETH9 = artifacts.require('WETH9');
 const UniV2Pair = artifacts.require("UniswapV2Pair");
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
@@ -40,12 +42,32 @@ const advanceByHours = async (hours) => {
 const MAX_53_BIT = 4503599627370495;
 const GAS_LIMIT = 0x1fffffffffffff;
 
-contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
-    // before(async () => {
-    //     const wbtcController = await ERC20DetailedToken.at(MAINNET_WBTC_MINTER);
-    //     await wbtcController.send(1e18, { from: pervert, value: 1e18 }) // it has no gas
-    // })
+const ganachecli = require("ganache-cli");
+const server = ganachecli.server();
+console.log("listen....")
+server.listen(8545, function(err, blockchain) {
+    console.log("server listen cb");
+    console.log(err);
+    console.log(blockchain);
+});
 
+contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
+    beforeEach(async () => {
+        // Rebuild and fork from ganache
+        // web3.setProvider(ganache.provider());
+
+    })
+    afterEach(async () => {
+        // Tear down ganache
+
+    })
+    it("Sanity test for Ganache", async () => {
+        let block = await web3.eth.getBlock("latest")
+        block_number = block.number;
+
+        assert(block_number > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
+    });
+/*
     beforeEach(async () => {
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
@@ -72,8 +94,6 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
         ], { from: CORE_MULTISIG, gasLimit: 50000000 });
 
-
-
         // We check units of someone here
         const preUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
         const preUpgradeTimestampStart = await this.iLGE.contractStartTimestamp();
@@ -83,20 +103,15 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         await this.iLGE.finalizeTokenWrapAddress(this.cBTC.address, { from: this.owner });
 
-
-
-
         // We sanity check units again after upgrade in case of a memory error
         const postUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
         const postUpgradeTimestampStart = await this.iLGE.contractStartTimestamp();
         assert(parseInt(preUpgradeUnitsOfRandomPerson) == parseInt(postUpgradeUnitsOfRandomPerson), "Mismatch units after upgrade mem error");
         assert(parseInt(preUpgradeTimestampStart) == parseInt(postUpgradeTimestampStart), "Mismatch units after upgrade mem error");
 
-
         // get the wrappedToken value (cBTC in this case.)
         let wrappedTokenAddress = await this.iLGE.wrappedToken();
         let wrappedToken = await cBTC.at(wrappedTokenAddress);
-
 
         // Before ending the LGE, you have to set the LGEAddress on cBTC...
         await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: CORE_MULTISIG });
@@ -162,7 +177,6 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         const hoursPerBlockToSkip = 6;
         while (dayNum <= 8 * 24 / hoursPerBlockToSkip) {
             await advanceByHours(hoursPerBlockToSkip);
-
 
             const blockTimestamp = (await web3.eth.getBlock("latest")).timestamp;
             let lgeOVER = await iLGE.isLGEOver();
@@ -378,7 +392,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         assert((await WBTCContract.balanceOf(pervert)) == 6e8.toString(), "Wrong balance underlying after unwrap"); // 6 -1 +1 =6
 
     });
-
+*/
 
 
 });
@@ -402,7 +416,6 @@ const unlockCBTC = async () => {
     wrappedToken.unpauseTransfers({ from: CORE_MULTISIG });
     // set it back
     await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: CORE_MULTISIG });
-
 }
 
 const endLGEAdmin = async (iLGE) => {

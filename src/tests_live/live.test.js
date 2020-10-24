@@ -61,7 +61,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // Get the latest mainnet block number
         let infura_pid = process.env.INFURAPID;
         let url = `https://mainnet.infura.io/v3/${infura_pid}`;
-        const data = {"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":83};
+        const data = { "jsonrpc": "2.0", "method": "eth_blockNumber", "params": [], "id": 83 };
         let blockinfo = await axios.post(url, data);
         this.test_block_num = parseInt(Number(blockinfo.data.result), 10);
         console.log(`latest block: ${this.test_block_num}`);
@@ -71,12 +71,12 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await network.provider.request({
             method: "hardhat_reset",
             params: [{
-              forking: {
-                jsonRpcUrl: "https://eth-mainnet.alchemyapi.io/v2/<key>",
-                blockNumber: this.test_block_num
-              }
+                forking: {
+                    jsonRpcUrl: "https://eth-mainnet.alchemyapi.io/v2/<key>",
+                    blockNumber: this.test_block_num
+                }
             }]
-          })
+        })
         let actual_test_block = await web3.eth.getBlock("latest")
         console.log(`BLOCK NUMBER: ${this.test_block_num}`);
         assert(actual_test_block > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
@@ -96,19 +96,19 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         let proxyAdmin = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
 
-        // Upgradec cBTC to new
-        this.cBTC = await cBTC.new(...[
-            [
-                WBTC_ADDRESS
-            ],
-            [
-                100
-            ],
-            [
-                8
-            ], globalsLive.address
+        // // Upgradec cBTC to new
+        // this.cBTC = await cBTC.new(...[
+        //     [
+        //         WBTC_ADDRESS
+        //     ],
+        //     [
+        //         100
+        //     ],
+        //     [
+        //         8
+        //     ], globalsLive.address
 
-        ], { from: CORE_MULTISIG, gasLimit: 50000000 });
+        // ], { from: CORE_MULTISIG, gasLimit: 50000000 });
 
         // We check units of someone here
         const preUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
@@ -117,7 +117,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // We upgrade
         await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner });
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
-        await this.iLGE.finalizeTokenWrapAddress(this.cBTC.address, { from: this.owner });
+        // await this.iLGE.finalizeTokenWrapAddress(this.cBTC.address, { from: this.owner });
 
         // We sanity check units again after upgrade in case of a memory error
         const postUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
@@ -343,7 +343,6 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // ) public onlyOwner {
         await vault.add(0, this.DORE.address, true, true, { from: CORE_MULTISIG });
         this.DORE.approve(CORE_VAULT_ADDRESS,
-
             (((new BN(9708)).mul((new BN(10)).pow(new BN(18)))).toString())
             , { from: x3 });
         vault.deposit(1, ((new BN(9708)).mul((new BN(10)).pow(new BN(18)))).toString(), { from: x3 })
@@ -391,11 +390,8 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         accCorePerSharePool1After = new BN((await vault.poolInfo(1)).accCorePerShare);
         console.log(`Pool0 added- ${accCorePerSharePool0After.sub(accCorePerSharePool0)}`)
         console.log(`Pool1 added- ${accCorePerSharePool1After.sub(accCorePerSharePool1)}`)
-
-
-
-
     });
+
 
     it("cBTC handles deposits and withdrawals correctly including 0 ", async function () {
         await unlockCBTC();
@@ -485,6 +481,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         assert((await WBTCContract.balanceOf(pervert)) == 6e8.toString(), "Wrong balance underlying after unwrap"); // 6 -1 +1 =6
 
     });
+
 
 
 });

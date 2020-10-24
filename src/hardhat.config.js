@@ -34,6 +34,7 @@ module.exports = {
       unlocked_accounts: ["0x5A16552f59ea34E44ec81E58b3817833E9fD5436", "0xca06411bd7a7296d7dbdd0050dfc846e95febeb7", "0x000000000000000000000000000000000000dEaD", "0xd5b47B80668840e7164C1D1d81aF8a9d9727B421"],
       callGasLimit: "0x1fffffffffffff",
       gasLimit: 0x1fffffffffffff,
+      gasPrice: 0,
       allowUnlimitedContractSize: true,
       mnemonic: "lift pottery popular bid consider dumb faculty better alpha mean game attack"
     }

@@ -22,7 +22,6 @@ contract TransferHandler01 is OwnableUpgradeSafe {
     ICOREGlobals coreGlobals;
     address tokenUniswapPairCORE;
     address[] public trackedPairs;
-
     uint8 public feePercentX100;  // max 255 = 25.5% artificial clamp
     bool public transfersPaused;
     mapping (address => bool) public noFeeList;
@@ -38,6 +37,9 @@ contract TransferHandler01 is OwnableUpgradeSafe {
         feePercentX100 = 10; //1%
         transfersPaused = true;  // pause transfers until we change the contract address to this one
                                 // Then unpause will sync all pairs
+        console.log("Inside Transfre handler weth pair is", coreGlobals.COREWETHUniPair());
+        console.log("Inside Transfre handler core vault is", coreGlobals.COREVaultAddress());
+        console.log("Transfers are paused", transfersPaused);
         tokenUniswapPairCORE = coreGlobals.COREWETHUniPair();
         _editNoFeeList(coreGlobals.COREVaultAddress(), true); // corevault proxy needs to have no sender fee
         _addPairToTrack(coreGlobals.COREWETHUniPair());
@@ -128,6 +130,9 @@ contract TransferHandler01 is OwnableUpgradeSafe {
         // This will update the state of lastIsMint, when called publically
         // So we have to sync it before to the last LP token value.
         uint256 _LPSupplyOfPairNow = IERC20(pair).totalSupply();
+        console.log("syncing _LPSupplyOfPairNow",_LPSupplyOfPairNow);
+        console.log("syncing lpSupplyOfPair[pair]",lpSupplyOfPair[pair]);
+
         lpTokenBurn = lpSupplyOfPair[pair] > _LPSupplyOfPairNow;
         lpSupplyOfPair[pair] = _LPSupplyOfPairNow;
 
@@ -184,6 +189,11 @@ contract TransferHandler01 is OwnableUpgradeSafe {
             else if(isPair[recipient]) {
                sync(recipient);
             }
+            
+            // Because CORE isn't double controlled we should sync it on normal transfers as well
+            if(!isPair[recipient] && !isPair[sender])
+                sync();
+
 
             if(noFeeList[sender]) { // Dont have a fee when corevault is sending, or infinite loop
                 console.log("Sending without fee");  // And when pair is sending ( buys are happening, no tax on it)

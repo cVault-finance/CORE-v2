@@ -5,6 +5,7 @@ const { inTransaction } = require('@openzeppelin/test-helpers/src/expectEvent');
 const { assertion } = require('@openzeppelin/test-helpers/src/expectRevert');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const ganache = require("ganache-core");
+const { assert } = require('hardhat');
 const hre = require("hardhat");
 
 const WETH9 = artifacts.require('WETH9');
@@ -390,6 +391,24 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         accCorePerSharePool1After = new BN((await vault.poolInfo(1)).accCorePerShare);
         console.log(`Pool0 added- ${accCorePerSharePool0After.sub(accCorePerSharePool0)}`)
         console.log(`Pool1 added- ${accCorePerSharePool1After.sub(accCorePerSharePool1)}`)
+    });
+
+    it("LGE refunds work and are callable", async function () {
+        this.timeout(60000)
+        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+
+        //Contribute 1 ETH
+        const previousBalance = await iLGE.unitsContributed('0x4523b791292da89A9194B61bA4CD9d98f2af68E0');
+
+        await iLGE.matchCreditFromLPContributionBug({ from: CORE_MULTISIG });
+        const nowBalannce = await iLGE.unitsContributed('0x4523b791292da89A9194B61bA4CD9d98f2af68E0');
+        console.log(`
+        Prevoious balance for refund ${previousBalance}
+        Balance now ${nowBalannce}
+        expected refund is 7831928571428571000
+        now - prev = ${nowBalannce - previousBalance}`)
+        assert(parseInt(nowBalannce) == parseInt(previousBalance) + 7831928571428571000, "Incorrectly refunded(maybe change check previosu log)")
+
     });
 
 

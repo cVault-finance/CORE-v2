@@ -225,7 +225,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         uniswapFactory = coreGlobals.UniswapFactory();
     }
 
-    
+
     function setTokenBeingWrapped(address token, address tokenPairWithWETH) public onlyOwner {
         tokenBeingWrapped = IERC20(token);
         pairWithWETHAddressForToken[token] = tokenPairWithWETH;
@@ -613,7 +613,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     }
 
     bool public LPmismatchCredited;
-    function matchCreditFromLPContributionBug() public {
+    function matchCreditFromLPContributionBug() onlyOwner public {
         require(LPmismatchCredited == false , "Already refunded");
         // Values in ETH are half of the value of LP token at the moment of contribution
         // 30 transactions in total

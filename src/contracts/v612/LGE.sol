@@ -223,6 +223,7 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         preWrapEthPair = _preWrapEthPair;
         uniswapFactory = coreGlobals.UniswapFactory();
     }
+
     
     function setTokenBeingWrapped(address token, address tokenPairWithWETH) public onlyOwner {
         tokenBeingWrapped = IERC20(token);
@@ -751,10 +752,11 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     }
 
     function notMoreThan4PercentDeltaFromCurrentPrice(address pair, uint256 amtOutPer1ETH) internal  {
-        (uint256 reserveWETHofWrappedTokenPair, uint256 reserveTokenofWrappedTokenPair) = getPairReserves(preWrapEthPair);
+        (uint256 reserveWETHofWrappedTokenPair, uint256 reserveTokenofWrappedTokenPair) = getPairReserves(pair);
         uint256 outTokenFor1WETH = COREIUniswapV2Library.getAmountOut(1e18, reserveWETHofWrappedTokenPair, reserveTokenofWrappedTokenPair);
+        
         require(amtOutPer1ETH.mul(104) > outTokenFor1WETH.mul(100) 
-                && outTokenFor1WETH.mul(100) <  amtOutPer1ETH.mul(96), 
+                && outTokenFor1WETH.mul(96) <  amtOutPer1ETH.mul(100), 
                   "LGE : Delta of balances is too big from actual (4% or more)");
     }
 
@@ -800,15 +802,17 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
  
 
         if(publicCall == false){ // admin added ratio
-            
-            notMoreThan4PercentDeltaFromCurrentPrice(preWrapEthPair, ratio1ETHWholeBuysXWrappedTokenUnits);
             notMoreThan4PercentDeltaFromCurrentPrice(coreEthPair, ratio1ETHWholeBuysXCOREUnits);
+            notMoreThan4PercentDeltaFromCurrentPrice(preWrapEthPair, ratio1ETHWholeBuysXWrappedTokenUnits);
 
             uint256 totalValueOfWrapper = balanceCOREWrappedTokenNow.div(ratio1ETHWholeBuysXWrappedTokenUnits).mul(1e18);
             uint256 totalValueOfCORE =  balanceCORENow.div(ratio1ETHWholeBuysXCOREUnits).mul(1e18);
 
             totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0 :
                 totalValueOfCORE.sub(totalValueOfWrapper).mul(coreTokenPer1ETH).div(1e18);
+
+            require(totalValueOfWrapper.mul(100) < totalValueOfCORE.mul(104), "Too much WBTC value ( max 4% deviation)");
+
 
         }else{
             notMoreThan4PercentDeltaFromCurrentPrice(preWrapEthPair, tokenBeingWrappedPer1ETH);
@@ -819,7 +823,11 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
 
             totalCOREToRefund = totalValueOfWrapper >= totalValueOfCORE ? 0 :
                 totalValueOfCORE.sub(totalValueOfWrapper).mul(coreTokenPer1ETH).div(1e18);
+
+            require(totalValueOfWrapper.mul(100) < totalValueOfCORE.mul(104), "Too much WBTC value ( max 4% deviation)");
+    
         }
+
   
 
 

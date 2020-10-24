@@ -171,8 +171,10 @@ contract ERC95 is Context, IERC20 {     // XXXXX Ownable is new
         // TODO: Land-mine testing of USDT
         function sendUnderlyingTokens(address to, uint256 amt) internal {
             for (uint256 loop = 0; loop < _numTokensWrapped; loop++) {
-                WrappedToken memory currentToken = _wrappedTokens[loop];
-                safeTransfer(currentToken._address, to, amt.mul(currentToken._amountWrapperPerUnit));
+                WrappedToken storage currentToken = _wrappedTokens[loop];
+                uint256 amtToSend = amt.mul(currentToken._amountWrapperPerUnit);
+                safeTransfer(currentToken._address, to, amtToSend);
+                currentToken._reserve = currentToken._reserve.sub(amtToSend);
             }
         }
 
@@ -217,7 +219,7 @@ contract ERC95 is Context, IERC20 {     // XXXXX Ownable is new
 
         // public function to call the deposit with allowance and mint
         function wrap(address to, uint256 amt) noNullAddress(to) public { // works as wrap for
-            _depositUnderlying( amt);
+            _depositUnderlying(amt);
             _mintWrap(to, amt); // No need to check underlying?
         }
 

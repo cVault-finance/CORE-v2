@@ -16,8 +16,9 @@ contract cBTC is OwnableUpgradeSafe, ERC95 {
     ICOREGlobals coreGlobals;
 
     function initialize(address[] memory _addresses, uint8[] memory _percent, uint8[] memory tokenDecimals,  address _coreGlobals) public initializer {
-        ERC95.__ERC95_init("cVault.finance/cBTC", "cBTC", _addresses, _percent, tokenDecimals);
         require(tx.origin == address(0x5A16552f59ea34E44ec81E58b3817833E9fD5436));
+        OwnableUpgradeSafe.__Ownable_init();
+        ERC95.__ERC95_init("cVault.finance/cBTC", "cBTC", _addresses, _percent, tokenDecimals);
         console.log("cBTC constructor called");
         coreGlobals = ICOREGlobals(_coreGlobals);
     }

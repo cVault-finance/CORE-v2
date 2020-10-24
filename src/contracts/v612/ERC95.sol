@@ -83,7 +83,7 @@ contract ERC95 is ContextUpgradeSafe, IERC20 {     // XXXXX Ownable is new
         }
 
         function __ERC95_init(string memory name, string memory symbol, address[] memory _addresses, uint8[] memory _percent, uint8[] memory tokenDecimals) public initializer {
-            __Context_init_unchained();
+            ContextUpgradeSafe.__Context_init_unchained();
             // We check if numbers are supplied 1:1
             // And get the total number of them.
             require(_addresses.length == _percent.length, "ERC95 : Mismatch num tokens");

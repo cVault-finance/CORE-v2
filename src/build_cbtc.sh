@@ -14,7 +14,6 @@ function pause(){
  read -s -n 1 -p "Press any key to continue . . ."
  echo ""
 }
-pause
 npx truffle-flattener contracts/v612/cBTC.sol >> flattened_sols/flattened_cBTC.sol
 pause
 rm -rf contracts

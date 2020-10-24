@@ -1,16 +1,18 @@
-usePlugin("@nomiclabs/buidler-truffle5");
-usePlugin('buidler-log-remover');
+require("@nomiclabs/hardhat-truffle5");
+require('buidler-log-remover');
 
 module.exports = {
-  solc: {
+  solidity: {
     version: "0.4.24",
-    optimizer: {
-      enabled: true,
-      runs: 200
-    },
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 99999
+      }
+    }
   },
   networks: {
-    buidlerevm: {
+    hardhat: {
       allowUnlimitedContractSize: true,
       settings: {
         evmVersion: "byzantium"

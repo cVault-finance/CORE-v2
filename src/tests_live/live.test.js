@@ -36,6 +36,8 @@ const MAINNET_WBTC_MINTER = "0xca06411bd7a7296d7dbdd0050dfc846e95febeb7";
 const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 const CORE_ADDRESS = "0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7";
 
+const snapshot = require('./snapshot');
+
 const ProxyAdminContract = artifacts.require('ProxyAdmin');
 const { advanceBlock, advanceTime, advanceTimeAndBlock } = require('./timeHelpers');
 
@@ -56,6 +58,45 @@ server.listen(8545, function(err, blockchain) {
     console.log(blockchain);
 });*/
 
+
+
+
+/*const { web3 } = require('hardhat');
+
+const send = (method, params = []) => new Promise((resolve, reject) => {
+  web3.currentProvider.send(
+    { jsonrpc: '2.0', id: Date.now(), method, params },
+    (err, res) => err ? reject(err) : resolve(res),
+  );
+});
+
+const takeSnapshot = async () => {
+  const { result } = await send('evm_snapshot');
+  return result;
+};
+
+const revertToSnapshot = async id => send('evm_revert', [id]);
+
+module.exports = {
+  takeSnapshot,
+  revertToSnapshot,
+};*/
+
+
+const send = (method, params = []) => new Promise((resolve, reject) => {
+    web3.currentProvider.send(
+        { jsonrpc: '2.0', id: Date.now(), method, params },
+        (err, res) => err ? reject(err) : resolve(res),
+    );
+});
+const takeSnapshot = async () => {
+    const { result } = await send('evm_snapshot');
+    return result;
+};
+const revertToSnapshot = async id => send('evm_revert', [id]);
+
+
+
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
     before(async () => {
@@ -66,25 +107,36 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         let blockinfo = await axios.post(url, data);
         this.test_block_num = parseInt(Number(blockinfo.data.result), 10);
         console.log(`latest block: ${this.test_block_num}`);
+        this.snapshotId = await snapshot.takeSnapshot();
     })
 
     it("Sanity test for Ganache", async () => {
+        /*let infura_pid = process.env.INFURAPID;
         await network.provider.request({
-            method: "hardhat_reset",
+            method: "evm_snapshot",
             params: [{
                 forking: {
-                    jsonRpcUrl: "https://eth-mainnet.alchemyapi.io/v2/<key>",
+                    jsonRpcUrl: `https://mainnet.infura.io/v3/${infura_pid}`,
                     blockNumber: this.test_block_num
                 }
             }]
-        })
-        let actual_test_block = await web3.eth.getBlock("latest")
-        console.log(`BLOCK NUMBER: ${this.test_block_num}`);
-        assert(actual_test_block > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
-        assert(actual_test_block == this.test_block_num, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
+        })*/
+        
+        let actual_test_block = (await web3.eth.getBlock("latest")).number;
+        console.log(actual_test_block);
+        console.log(`BLOCK NUMBER: ${this.test_block_num}\nACTUAL BLCOK NUMBER: ${actual_test_block}`);
+        assert(actual_test_block > 11088005, "Test environment problem 1");
+        assert(actual_test_block == this.test_block_num, "Test environment problem 2");
+    });
+    // beforeEach(async () => {
+    //     this.snapshotId = await snapshot.takeSnapshot();
+    // });
+    afterEach(async function () {
+        await snapshot.revertToSnapshot(this.snapshotId);
     });
 
     beforeEach(async () => {
+        // this.snapshotId = await snapshot.takeSnapshot();
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
         this.CORETransferHandler = await TransferHandler01.new({ from: pervert });
@@ -96,20 +148,6 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         let proxyAdmin = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
-
-        // // Upgradec cBTC to new
-        // this.cBTC = await cBTC.new(...[
-        //     [
-        //         WBTC_ADDRESS
-        //     ],
-        //     [
-        //         100
-        //     ],
-        //     [
-        //         8
-        //     ], globalsLive.address
-
-        // ], { from: CORE_MULTISIG, gasLimit: 50000000 });
 
         // We check units of someone here
         const preUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
@@ -134,7 +172,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: CORE_MULTISIG });
 
     });
-
+/*
     it("Tests should fork from mainnet at a block number after the LGE is started and deployed", async () => {
         // Sanity tests to assure ganache restarts for each test trial
         this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
@@ -523,7 +561,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         assert((await WBTCContract.balanceOf(pervert)) == 6e8.toString(), "Wrong balance underlying after unwrap"); // 6 -1 +1 =6
 
     });
-
+*/
 
 
 });

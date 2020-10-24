@@ -25,7 +25,7 @@ contract TransferHandler01 is OwnableUpgradeSafe {
     uint8 public feePercentX100;  // max 255 = 25.5% artificial clamp
     bool public transfersPaused;
     mapping (address => bool) public noFeeList;
-    mapping (address =>bool) public isPair;
+    mapping (address => bool) public isPair;
 
 
     function initialize(
@@ -35,7 +35,8 @@ contract TransferHandler01 is OwnableUpgradeSafe {
         coreGlobals = ICOREGlobals(_coreGlobals);
 
         feePercentX100 = 10; //1%
-
+        transfersPaused = true;  // pause transfers until we change the contract address to this one
+                                // Then unpause will sync all pairs
         tokenUniswapPairCORE = coreGlobals.COREWETHUniPair();
         _editNoFeeList(coreGlobals.COREVaultAddress(), true); // corevault proxy needs to have no sender fee
         _addPairToTrack(coreGlobals.COREWETHUniPair());

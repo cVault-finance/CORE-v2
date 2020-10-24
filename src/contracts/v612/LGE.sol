@@ -844,8 +844,8 @@ contract cLGE is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         LGEFinished = true;
 
         //sync the tokens
-        ICORETransferHandler(coreGlobals.TransferHandler()).sync(wrappedToken);
-        ICORETransferHandler(coreGlobals.TransferHandler()).sync(COREToken);
+        ICORETransferHandler(coreGlobals.TransferHandler()).sync(wrappedTokenUniswapPair);
+        ICORETransferHandler(coreGlobals.TransferHandler()).sync(coreEthPair);
 
     }
     

@@ -342,8 +342,8 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         //     bool _withdrawable
         // ) public onlyOwner {
         await vault.add(0, this.DORE.address, true, true, { from: CORE_MULTISIG });
-        this.DORE.approve(CORE_VAULT_ADDRESS,
-            (((new BN(9708)).mul((new BN(10)).pow(new BN(18)))).toString())
+        await this.DORE.approve(CORE_VAULT_ADDRESS,
+            ((new BN(10000)).mul((new BN(10)).pow(new BN(18)))).toString()
             , { from: x3 });
         vault.deposit(1, ((new BN(9708)).mul((new BN(10)).pow(new BN(18)))).toString(), { from: x3 })
         let accCorePerSharePool1 = new BN((await vault.poolInfo(1)).accCorePerShare); // Old pool has 100 alloc

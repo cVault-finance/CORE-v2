@@ -1,5 +1,5 @@
 require("@nomiclabs/hardhat-truffle5");
-// usePlugin('buidler-log-remover');
+require('hardhat-log-remover');
 require("@nomiclabs/hardhat-ganache");
 
 module.exports = {

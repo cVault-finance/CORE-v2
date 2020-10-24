@@ -33,6 +33,7 @@ const UNISWAP_ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const WBTC_ADDRESS = "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
 const MAINNET_WBTC_MINTER = "0xca06411bd7a7296d7dbdd0050dfc846e95febeb7";
 const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD";
+const CORE_ADDRESS = "0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7";
 
 const ProxyAdminContract = artifacts.require('ProxyAdmin');
 const { advanceBlock, advanceTime, advanceTimeAndBlock } = require('./timeHelpers');
@@ -322,6 +323,80 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await unlockCBTC();
     });
 
+
+    it("Vault handles multiple pools", async function () {
+        let vault = await CoreVault.at(CORE_VAULT_ADDRESS);
+        await vault.massUpdatePools();
+        assert((await vault.pendingRewards()) == 0, " Pending rewards is not 0 restart test pls");
+        const CORE = await CoreToken.at(CORE_ADDRESS);
+        // test token for stake
+        this.DORE = await ERC20DetailedToken.new("Dumbledore Token", "DORE", "18", ((new BN(10000)).mul((new BN(10)).pow(new BN(18)))).toString(), { from: x3 });
+
+        let accCorePerSharePool0 = new BN((await vault.poolInfo(0)).accCorePerShare); // Old pool has 100 alloc
+        console.log(`Share for pool 0 before doing anything - ${accCorePerSharePool0}`)
+        console.log(`Adding new pool for test token`);
+        // function add(
+        //     uint256 _allocPoint,
+        //     IERC20 _token,
+        //     bool _withUpdate,
+        //     bool _withdrawable
+        // ) public onlyOwner {
+        await vault.add(0, this.DORE.address, true, true, { from: CORE_MULTISIG });
+        this.DORE.approve(CORE_VAULT_ADDRESS,
+
+            (((new BN(9708)).mul((new BN(10)).pow(new BN(18)))).toString())
+            , { from: x3 });
+        vault.deposit(1, ((new BN(9708)).mul((new BN(10)).pow(new BN(18)))).toString(), { from: x3 })
+        let accCorePerSharePool1 = new BN((await vault.poolInfo(1)).accCorePerShare); // Old pool has 100 alloc
+        console.log(`Share for pool 1 just after adding- ${accCorePerSharePool1}`)
+        console.log(`Balance of vault  before burn transfer ${await CORE.balanceOf(CORE_VAULT_ADDRESS)}`)
+        await CORE.transfer(DEAD_ADDRESS, 1e17.toString(), { from: CORE_MULTISIG }) //10 tax
+        console.log(`Balance of vault  after burn transfer${await CORE.balanceOf(CORE_VAULT_ADDRESS)}`)
+        console.log(`Pending rewards after transfer${await vault.pendingRewards()}`)
+
+        await vault.massUpdatePools();
+
+        let accCorePerSharePool0After = new BN((await vault.poolInfo(0)).accCorePerShare); // Old pool has 100 alloc
+        let accCorePerSharePool1After = new BN((await vault.poolInfo(1)).accCorePerShare); // Old pool has 100 alloc
+        console.log(`Pool0 added- ${accCorePerSharePool0After.sub(accCorePerSharePool0)}`)
+        console.log(`Pool1 added- ${accCorePerSharePool1After.sub(accCorePerSharePool1)}`)
+
+        // /////   function set(
+        // uint256 _pid,
+        //     uint256 _allocPoint,
+        //         bool _withUpdate
+
+        console.log("-----")
+        console.log(`After a addition of 1e15 and mass update (50/50 split)`)
+        await vault.set(1, 100, true, { from: CORE_MULTISIG }); //100 and 100 so 50/50
+        accCorePerSharePool0 = new BN((await vault.poolInfo(0)).accCorePerShare);
+        accCorePerSharePool1 = new BN((await vault.poolInfo(1)).accCorePerShare);
+        await CORE.transfer(DEAD_ADDRESS, 1e17.toString(), { from: CORE_MULTISIG }) //10 tax
+
+        await vault.massUpdatePools();
+        accCorePerSharePool0After = new BN((await vault.poolInfo(0)).accCorePerShare);
+        accCorePerSharePool1After = new BN((await vault.poolInfo(1)).accCorePerShare);
+        console.log(`Pool0 added- ${accCorePerSharePool0After.sub(accCorePerSharePool0)}`)
+        console.log(`Pool1 added- ${accCorePerSharePool1After.sub(accCorePerSharePool1)}`)
+
+        //////
+        console.log("-----")
+        console.log(`After a addition of 1e15 and mass update (10/90 split)`)
+        await vault.set(0, 900, true, { from: CORE_MULTISIG }); //900 and 100 so 90/10
+        accCorePerSharePool0 = new BN((await vault.poolInfo(0)).accCorePerShare);
+        accCorePerSharePool1 = new BN((await vault.poolInfo(1)).accCorePerShare);
+        await CORE.transfer(DEAD_ADDRESS, 1e17.toString(), { from: CORE_MULTISIG }) //10 tax
+        await vault.massUpdatePools();
+        accCorePerSharePool0After = new BN((await vault.poolInfo(0)).accCorePerShare);
+        accCorePerSharePool1After = new BN((await vault.poolInfo(1)).accCorePerShare);
+        console.log(`Pool0 added- ${accCorePerSharePool0After.sub(accCorePerSharePool0)}`)
+        console.log(`Pool1 added- ${accCorePerSharePool1After.sub(accCorePerSharePool1)}`)
+
+
+
+
+    });
+
     it("cBTC handles deposits and withdrawals correctly including 0 ", async function () {
         await unlockCBTC();
         const WBTCContract = await WBTC.at(WBTC_ADDRESS);
@@ -403,6 +478,9 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await cBTCContract.unwrap(0, { from: pervert });
         await cBTCContract.unwrap(0, { from: pervert });
         await cBTCContract.skim(pervert, { from: pervert })
+        assert((await WBTCContract.balanceOf(cBTCContract.address)) == 0, "Wrong balance underlying after unwrap"); // 6 -1 +1 =6
+        assert((await WBTCContract.balanceOf(x3)) == 12e8, "Wrong balance underlying after unwrap"); // 6 -1 +1 =6
+
         assert((await cBTCContract.balanceOf(pervert)) == 0, "Wrong balance after unwrap");
         assert((await WBTCContract.balanceOf(pervert)) == 6e8.toString(), "Wrong balance underlying after unwrap"); // 6 -1 +1 =6
 

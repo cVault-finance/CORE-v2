@@ -11,7 +11,7 @@ interface ICORETransferHandler{
 
 contract cBTC is OwnableUpgradeSafe, ERC95 {
 
-    bool paused = true; // Once only unpause
+    bool public paused; // Once only unpause
     address LGEAddress;
     ICOREGlobals coreGlobals;
 
@@ -21,6 +21,7 @@ contract cBTC is OwnableUpgradeSafe, ERC95 {
         ERC95.__ERC95_init("cVault.finance/cBTC", "cBTC", _addresses, _percent, tokenDecimals);
         console.log("cBTC constructor called");
         coreGlobals = ICOREGlobals(_coreGlobals);
+        paused = true;
     }
 
     function changeWrapTokenName(string memory name) public onlyOwner {

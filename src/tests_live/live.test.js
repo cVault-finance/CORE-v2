@@ -408,7 +408,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
         await vault.add(0, await iLGE.wrappedTokenUniswapPair(), true, true, { from: CORE_MULTISIG });
 
-        await this.iLGE.claimLPAndStake({ from: joe });
+        await this.iLGE.claimAndStakeLP({ from: joe });
         // mapping(uint256 => mapping(address => UserInfo)) public userInfo;
         // This might be gotten diffrently i dont know cant check rn
         assert((await vault.userInfo(1, joe)).amount < 0, "User wasn't credited for deposit in the vault");

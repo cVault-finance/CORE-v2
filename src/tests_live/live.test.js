@@ -393,6 +393,29 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
     });
 
 
+    it("Deposit for person after LGE is over works", async function () {
+        this.timeout(60000)
+        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+
+        //Contribute 1 ETH
+        await iLGE.addLiquidityETH({ from: joe, value: 1e18 });
+
+        await advanceByHours(999); // we make it finished but not call end
+
+        await endLGEAdmin(this.iLGE);
+
+        let vault = await CoreVault.at(CORE_VAULT_ADDRESS);
+
+        await vault.add(0, await iLGE.wrappedTokenUniswapPair(), true, true, { from: CORE_MULTISIG });
+
+        await this.iLGE.claimLPAndStake({ from: joe });
+        // mapping(uint256 => mapping(address => UserInfo)) public userInfo;
+        // This might be gotten diffrently i dont know cant check rn
+        assert((await vault.userInfo(1, joe)).amount < 0, "User wasn't credited for deposit in the vault");
+
+    });
+
+
     it("cBTC handles deposits and withdrawals correctly including 0 ", async function () {
         await unlockCBTC();
         const WBTCContract = await WBTC.at(WBTC_ADDRESS);

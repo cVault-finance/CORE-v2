@@ -435,6 +435,27 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
     });
 
 
+    it("Can't burn new LP tokens immidietly after LGE cuse of SYNC on feeApprover", async function () {
+        this.timeout(60000)
+        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+
+        //Contribute 1 ETH
+        await iLGE.addLiquidityETH({ from: joe, value: 1e18 });
+
+        await advanceByHours(999); // we make it finished but not call end
+
+        await endLGEAdmin(this.iLGE);
+
+        await this.iLGE.claimLP({ from: joe });
+        const newPair = await UniV2Pair.at(await iLGE.wrappedTokenUniswapPair());
+        await newPair.transfer(newPair.address, 10, { from: joe });
+        await expectRevert(newPair.burn(joe), "UniswapV2: TRANSFER_FAILED")
+        // mapping(uint256 => mapping(address => UserInfo)) public userInfo;
+        // This might be gotten diffrently i dont know cant check rn
+
+    });
+
+
     it("cBTC handles deposits and withdrawals correctly including 0 ", async function () {
         await unlockCBTC();
         const WBTCContract = await WBTC.at(WBTC_ADDRESS);

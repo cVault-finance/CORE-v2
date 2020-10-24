@@ -47,7 +47,15 @@ const advanceByHours = async (hours) => {
 const MAX_53_BIT = 4503599627370495;
 const GAS_LIMIT = 0x1fffffffffffff;
 
+const impersonate = async (address) => {
+    await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [address]}
+    )
+}
+
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
+    console.log(x3);
 
     it("Sanity test for Ganache", async function() {
         let actual_test_block = (await web3.eth.getBlock("latest")).number;
@@ -61,6 +69,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
     });
 
     beforeEach(async function() {
+        impersonate("0x5a16552f59ea34e44ec81e58b3817833e9fd5436");
         this.snapshotId = await snapshot.takeSnapshot();
         console.log(`Took snapshot ${this.snapshotId}`);
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
@@ -95,26 +104,29 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
     });
 
-    it("Tests should fork from mainnet at a block number after the LGE is started and deployed", async () => {
-        // Sanity tests to assure ganache restarts for each test trial
-        this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
-        let block = await web3.eth.getBlock("latest")
-        block_number = block.number;
-        // Lge upgrading test
-        // proxy admin for upgrades
-        // We get new transfer handler
-        // we upgrade LGE
-        let x3bal = await web3.eth.getBalance(x3);
-        assert(x3bal == ether('100'), "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
-        // Send 1 eth to the x3 address to deliberately break tests if they're run twice without restarting ganache
-        await web3.eth.sendTransaction({
-            from: pervert,
-            to: x3,
-            value: ether('1')
-        });
-        x3bal = await web3.eth.getBalance(x3);
-        assert(x3bal == ether('101'), "ETH balance error on wallet 0");
-    });
+    // it("Tests should fork from mainnet at a block number after the LGE is started and deployed", async () => {
+    //     // Sanity tests to assure ganache restarts for each test trial
+    //     this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
+    //     let block = await web3.eth.getBlock("latest")
+    //     block_number = block.number;
+    //     // Lge upgrading test
+    //     // proxy admin for upgrades
+    //     // We get new transfer handler
+    //     // we upgrade LGE
+    //     let x3bal = await web3.eth.getBalance(x3);
+    //     console.log(`x3bal: ${x3bal}`);
+    //     console.log(x3bal);
+    //     //assert(x3bal == ether('100'), "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
+    //     assert(x3bal == '100', "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
+    //     // Send 1 eth to the x3 address to deliberately break tests if they're run twice without restarting ganache
+    //     await web3.eth.sendTransaction({
+    //         from: pervert,
+    //         to: x3,
+    //         value: 1
+    //     });
+    //     x3bal = await web3.eth.getBalance(x3);
+    //     assert(x3bal == '101', "ETH balance error on wallet 0");
+    // });
 
     it("Should have a core vault showing the correct token address on mainnet", async () => {
         let cv = await CoreVault.at(CORE_VAULT_ADDRESS);
@@ -125,6 +137,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
     it("Should not let others extend LGE", async function() {
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         await expectRevert(iLGE.extendLGE(1, { from: trashcan }), "LGE: Requires admin");
+        impersonate(this.OxRevertMainnetAddress);
         await iLGE.extendLGE(1, { from: this.OxRevertMainnetAddress });
     });
 
@@ -210,7 +223,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         await advanceByHours(999); // we make it finished but not call end
         await endLGEAdmin(iLGE);
-        await expectRevert(iLGE.claimLP({ from: rando }), "LEG : Nothing to claim.")
+        await expectRevert(iLGE.claimLP({ from: rando }), "LEG : Nothing to claim")
     })
 
 

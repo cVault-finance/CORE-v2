@@ -23,6 +23,7 @@ const COREDelegator = artifacts.require('COREDelegator');
 const cBTC = artifacts.require('cBTC');
 const TransferHandler01 = artifacts.require('TransferHandler01');
 
+const TRANSFER_HANDLER_ADDRESS = "0x2e2a33ceca9aef101d679ed058368ac994118e7a"
 const WBTC_ETH_PAIR_ADDRESS = "0xbb2b8038a1640196fbe3e38816f3e67cba72d940"
 const CORE_ETH_PAIR_ADDRESS = "0x32ce7e48debdccbfe0cd037cc89526e4382cb81b"
 const CORE_VAULT_ADDRESS = "0xc5cacb708425961594b63ec171f4df27a9c0d8c9";
@@ -50,14 +51,15 @@ const GAS_LIMIT = 0x1fffffffffffff;
 const impersonate = async (address) => {
     await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
-        params: [address]}
+        params: [address]
+    }
     )
 }
 
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
     console.log(x3);
 
-    it("Sanity test for Ganache", async function() {
+    it("Sanity test for Ganache", async function () {
         let actual_test_block = (await web3.eth.getBlock("latest")).number;
         console.log(actual_test_block);
         console.log(`BLOCK NUMBER: ${this.test_block_num}\nACTUAL BLCOK NUMBER: ${actual_test_block}`);
@@ -68,7 +70,8 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await snapshot.revertToSnapshot(this.snapshotId);
     });
 
-    beforeEach(async function() {
+    beforeEach(async function () {
+        this.timeout(120000)
         impersonate("0x5a16552f59ea34e44ec81e58b3817833e9fd5436");
         this.snapshotId = await snapshot.takeSnapshot();
         console.log(`Took snapshot ${this.snapshotId}`);
@@ -134,7 +137,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         assert(coreTokenFromMainnet == "0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7", "Sanity check for core token address failed on Core Vault")
     });
 
-    it("Should not let others extend LGE", async function() {
+    it("Should not let others extend LGE", async function () {
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         await expectRevert(iLGE.extendLGE(1, { from: trashcan }), "LGE: Requires admin");
         impersonate(this.OxRevertMainnetAddress);
@@ -219,7 +222,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
     });
 
     it("Doesn't give out LP to people who didn't contribute", async function () {
-        this.timeout(60000)
+        this.timeout(120000)
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         await advanceByHours(999); // we make it finished but not call end
         await endLGEAdmin(iLGE);
@@ -297,6 +300,8 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
 
     it("Vault handles multiple pools", async function () {
+        this.timeout(120000)
+
         let vault = await CoreVault.at(CORE_VAULT_ADDRESS);
         await vault.massUpdatePools();
         assert((await vault.pendingRewards()) == 0, " Pending rewards is not 0 restart test pls");
@@ -365,7 +370,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
     });
 
     it("LGE refunds work and are callable", async function () {
-        this.timeout(60000)
+        this.timeout(120000)
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
 
         //Contribute 1 ETH
@@ -401,7 +406,8 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await this.iLGE.claimAndStakeLP({ from: joe });
         // mapping(uint256 => mapping(address => UserInfo)) public userInfo;
         // This might be gotten diffrently i dont know cant check rn
-        assert((await vault.userInfo(1, joe)).amount < 0, "User wasn't credited for deposit in the vault");
+        console.log(parseInt(((await vault.userInfo(1, joe)).amount).toString()))
+        assert(parseInt(((await vault.userInfo(1, joe)).amount).toString()) > 0, "User wasn't credited for deposit in the vault");
 
     });
 
@@ -415,11 +421,16 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
         await advanceByHours(999); // we make it finished but not call end
 
+        const tHandler = await TransferHandler01.at(TRANSFER_HANDLER_ADDRESS);
         await endLGEAdmin(this.iLGE);
+        const newPairAddress = await this.iLGE.wrappedTokenUniswapPair();
+        console.log(`New Pair address is ${newPairAddress}`)
+        await tHandler.addPairToTrack(newPairAddress, { from: CORE_MULTISIG })
+        await tHandler.sync(newPairAddress)
 
         await this.iLGE.claimLP({ from: joe });
         const newPair = await UniV2Pair.at(await iLGE.wrappedTokenUniswapPair());
-        await newPair.transfer(newPair.address, 10, { from: joe });
+        await newPair.transfer(newPair.address, (await newPair.balanceOf(joe)).valueOf().toString(), { from: joe });
         await expectRevert(newPair.burn(joe), "UniswapV2: TRANSFER_FAILED")
         // mapping(uint256 => mapping(address => UserInfo)) public userInfo;
         // This might be gotten diffrently i dont know cant check rn
@@ -428,6 +439,8 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
 
     it("cBTC handles deposits and withdrawals correctly including 0 ", async function () {
+        this.timeout(120000)
+
         await unlockCBTC();
         const WBTCContract = await WBTC.at(WBTC_ADDRESS);
         let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
@@ -524,6 +537,7 @@ const mintwBTCTo = async (to, amt) => {
     console.log(`minting btc for ${amt}`)
     const WBTCContract = await WBTC.at(WBTC_ADDRESS);
     const balanceBefore = await WBTCContract.balanceOf(to)
+    impersonate(MAINNET_WBTC_MINTER);
     await WBTCContract.mint(DEAD_ADDRESS, parseInt(amt) * 100, { from: MAINNET_WBTC_MINTER }); // its minting less ? so lets just mint a lot and trasnfer from trashan
     await WBTCContract.transfer(to, amt, { from: DEAD_ADDRESS });
     console.log(`Balance after mint wbtc ${await WBTCContract.balanceOf(to)}`)

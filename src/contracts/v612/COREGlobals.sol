@@ -29,7 +29,8 @@
 
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
-import "@nomiclabs/buidler/console.sol";
+import "hardhat/console.sol";
+
 
 contract COREGlobals is OwnableUpgradeSafe {
 

@@ -66,7 +66,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import './COREv1/ICoreVault.sol';
-import "@nomiclabs/buidler/console.sol";
+import "hardhat/console.sol";
+
 
 // import '@uniswap/v2-core/contracts/UniswapV2Pair.sol';
 

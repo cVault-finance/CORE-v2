@@ -39,7 +39,8 @@
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@nomiclabs/buidler/console.sol";
+import "hardhat/console.sol";
+
 import "./ICOREGlobals.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 

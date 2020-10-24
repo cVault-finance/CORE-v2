@@ -7,7 +7,8 @@ import "@openzeppelin/contracts-ethereum-package/contracts/utils/EnumerableSet.s
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "./INBUNIERC20.sol";
-import "@nomiclabs/buidler/console.sol";
+import "hardhat/console.sol";
+
 
 interface ICOREGlobals {
     function TransferHandler() external returns (address);

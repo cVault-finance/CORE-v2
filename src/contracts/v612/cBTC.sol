@@ -1,6 +1,6 @@
 pragma solidity 0.6.12;
 import './ERC95.sol';
-import "@openzeppelin/contracts/access/Ownable.sol"; 
+import "hardhat/console.sol";
 interface ICOREGlobals {
     function TransferHandler() external returns (address);
 }

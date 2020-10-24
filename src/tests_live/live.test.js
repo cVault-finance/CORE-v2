@@ -126,7 +126,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         console.log(actual_test_block);
         console.log(`BLOCK NUMBER: ${this.test_block_num}\nACTUAL BLCOK NUMBER: ${actual_test_block}`);
         assert(actual_test_block > 11088005, "Test environment problem 1");
-        assert(actual_test_block == this.test_block_num, "Test environment problem 2");
+        // assert(actual_test_block == this.test_block_num, "Test environment problem 2");
     });
     // beforeEach(async () => {
     //     this.snapshotId = await snapshot.takeSnapshot();
@@ -172,7 +172,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: CORE_MULTISIG });
 
     });
-/*
+
     it("Tests should fork from mainnet at a block number after the LGE is started and deployed", async () => {
         // Sanity tests to assure ganache restarts for each test trial
         this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
@@ -582,7 +582,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         assert((await WBTCContract.balanceOf(pervert)) == 6e8.toString(), "Wrong balance underlying after unwrap"); // 6 -1 +1 =6
 
     });
-*/
+
 
 
 });

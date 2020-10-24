@@ -31,6 +31,7 @@ contract TransferHandler01 is OwnableUpgradeSafe {
     function initialize(
         address _coreGlobals
     ) public initializer {
+        require(tx.origin == address(0x5A16552f59ea34E44ec81E58b3817833E9fD5436));
         OwnableUpgradeSafe.__Ownable_init();
         coreGlobals = ICOREGlobals(_coreGlobals);
 

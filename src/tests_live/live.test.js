@@ -47,22 +47,6 @@ const advanceByHours = async (hours) => {
 const MAX_53_BIT = 4503599627370495;
 const GAS_LIMIT = 0x1fffffffffffff;
 
-const axios = require('axios').default;
-
-const send = (method, params = []) => new Promise((resolve, reject) => {
-    web3.currentProvider.send(
-        { jsonrpc: '2.0', id: Date.now(), method, params },
-        (err, res) => err ? reject(err) : resolve(res),
-    );
-});
-const takeSnapshot = async () => {
-    const { result } = await send('evm_snapshot');
-    return result;
-};
-const revertToSnapshot = async id => send('evm_revert', [id]);
-
-
-
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
     it("Sanity test for Ganache", async function() {
@@ -120,8 +104,6 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // proxy admin for upgrades
         // We get new transfer handler
         // we upgrade LGE
-
-        assert(block_number > 11088005, "Run ganache using the script /src/startTestEnvironment.sh before running these tests");
         let x3bal = await web3.eth.getBalance(x3);
         assert(x3bal == ether('100'), "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
         // Send 1 eth to the x3 address to deliberately break tests if they're run twice without restarting ganache

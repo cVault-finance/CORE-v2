@@ -139,12 +139,12 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // this.snapshotId = await snapshot.takeSnapshot();
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
-        this.CORETransferHandler = await TransferHandler01.new({ from: pervert });
+        // this.CORETransferHandler = await TransferHandler01.new({ from: pervert });
         //This is now upgraded
-        let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);
+        // let globalsLive = await COREGlobals.at(CORE_GLOBALS_ADDRESS);
         // we setnew transfer handler to transfer handler
 
-        await globalsLive.setTransferHandler(this.CORETransferHandler.address, { from: this.owner });
+        // await globalsLive.setTransferHandler(this.CORETransferHandler.address, { from: this.owner });
         this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
         let proxyAdmin = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
@@ -469,6 +469,27 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // mapping(uint256 => mapping(address => UserInfo)) public userInfo;
         // This might be gotten diffrently i dont know cant check rn
         assert((await vault.userInfo(1, joe)).amount < 0, "User wasn't credited for deposit in the vault");
+
+    });
+
+
+    it("Can't burn new LP tokens immidietly after LGE cuse of SYNC on feeApprover", async function () {
+        this.timeout(60000)
+        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+
+        //Contribute 1 ETH
+        await iLGE.addLiquidityETH({ from: joe, value: 1e18 });
+
+        await advanceByHours(999); // we make it finished but not call end
+
+        await endLGEAdmin(this.iLGE);
+
+        await this.iLGE.claimLP({ from: joe });
+        const newPair = await UniV2Pair.at(await iLGE.wrappedTokenUniswapPair());
+        await newPair.transfer(newPair.address, 10, { from: joe });
+        await expectRevert(newPair.burn(joe), "UniswapV2: TRANSFER_FAILED")
+        // mapping(uint256 => mapping(address => UserInfo)) public userInfo;
+        // This might be gotten diffrently i dont know cant check rn
 
     });
 

@@ -48,10 +48,13 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/GSN/Context.sol";
 import "hardhat/console.sol";
 
-contract ERC95 is Context, IERC20 {     // XXXXX Ownable is new
+import "@openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+// import "@openzeppelin/contracts/GSN/Context.sol";
+
+contract ERC95 is ContextUpgradeSafe, IERC20 {     // XXXXX Ownable is new
     using SafeMath for uint256;
     using SafeMath for uint8;
 
@@ -65,7 +68,7 @@ contract ERC95 is Context, IERC20 {     // XXXXX Ownable is new
         event Wrapped(address indexed from, address indexed to, uint256 amount);
         event Unwrapped(address indexed from, address indexed to, uint256 amount);
 
-        uint8 immutable public _numTokensWrapped;
+        uint8 public _numTokensWrapped;
         WrappedToken[] public _wrappedTokens;
 
         // Structs
@@ -79,8 +82,8 @@ contract ERC95 is Context, IERC20 {     // XXXXX Ownable is new
             _name = name;
         }
 
-        constructor(string memory name, string memory symbol, address[] memory _addresses, uint8[] memory _percent, uint8[] memory tokenDecimals) public {
-            
+        function __ERC95_init(string memory name, string memory symbol, address[] memory _addresses, uint8[] memory _percent, uint8[] memory tokenDecimals) public initializer {
+            __Context_init_unchained();
             // We check if numbers are supplied 1:1
             // And get the total number of them.
             require(_addresses.length == _percent.length, "ERC95 : Mismatch num tokens");

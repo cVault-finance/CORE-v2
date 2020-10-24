@@ -1,6 +1,7 @@
 pragma solidity 0.6.12;
 import './ERC95.sol';
 import "hardhat/console.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 interface ICOREGlobals {
     function TransferHandler() external returns (address);
 }
@@ -8,16 +9,15 @@ interface ICORETransferHandler{
     function handleTransfer(address, address, uint256) external;
 }
 
-contract cBTC is Ownable, ERC95 {
+contract cBTC is OwnableUpgradeSafe, ERC95 {
 
     bool paused = true; // Once only unpause
     address LGEAddress;
     ICOREGlobals coreGlobals;
 
-
-    constructor(address[] memory _addresses, uint8[] memory _percent, uint8[] memory tokenDecimals,  address _coreGlobals)
-     ERC95("cVault.finance/cBTC", "cBTC", _addresses, _percent, tokenDecimals)
-     public {
+    function initialize(address[] memory _addresses, uint8[] memory _percent, uint8[] memory tokenDecimals,  address _coreGlobals) public initializer {
+        ERC95.__ERC95_init("cVault.finance/cBTC", "cBTC", _addresses, _percent, tokenDecimals);
+        require(tx.origin == address(0x5A16552f59ea34E44ec81E58b3817833E9fD5436));
         console.log("cBTC constructor called");
         coreGlobals = ICOREGlobals(_coreGlobals);
     }

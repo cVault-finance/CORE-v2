@@ -43,7 +43,6 @@ module.exports = {
       },
       forking: {
         url: "https://eth-mainnet.alchemyapi.io/v2/TsLEJAhX87icgMO7ZVyPcpeEgpFEo96O",
-        blockNumber: 11122325,
       }
     }
   }

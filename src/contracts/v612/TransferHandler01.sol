@@ -127,7 +127,7 @@ contract TransferHandler01 is OwnableUpgradeSafe {
     mapping(address => uint256) private lpSupplyOfPair;
 
     function sync(address pair) public returns (bool lastIsMint, bool lpTokenBurn) {
-
+        console.log("TransferHandler01::sync(", pair);
         // This will update the state of lastIsMint, when called publically
         // So we have to sync it before to the last LP token value.
         uint256 _LPSupplyOfPairNow = IERC20(pair).totalSupply();
@@ -154,6 +154,7 @@ contract TransferHandler01 is OwnableUpgradeSafe {
         address recipient, 
         uint256 amount
         ) public {
+            console.log("TransferHandler01::handleTransfer");
             
             // If the pair is sender it might be a burn
             // So we sync and then check
@@ -177,6 +178,7 @@ contract TransferHandler01 is OwnableUpgradeSafe {
         uint256 amount
         ) public  returns (uint256 transferToAmount, uint256 transferToFeeDistributorAmount) 
         {
+            console.log("TransferHandler01::calculateAmountsAfterFee");
             require(transfersPaused == false, "CORE TransferHandler v0.1 : Transfers Paused");
 
             // If the sender is pair

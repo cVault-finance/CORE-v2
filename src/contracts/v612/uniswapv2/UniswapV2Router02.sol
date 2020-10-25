@@ -111,11 +111,17 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
         address to,
         uint deadline
     ) public virtual override ensure(deadline) returns (uint amountA, uint amountB) {
+        console.log("UniswapV2Router02::removeLiquidity 1");
         address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
+        console.log("UniswapV2Router02::removeLiquidity 2");
         IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        console.log("UniswapV2Router02::removeLiquidity 3");
         (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);
+        console.log("UniswapV2Router02::removeLiquidity 4");
         (address token0,) = UniswapV2Library.sortTokens(tokenA, tokenB);
+        console.log("UniswapV2Router02::removeLiquidity 5");
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
+        console.log("UniswapV2Router02::removeLiquidity 6");
         require(amountA >= amountAMin, 'UniswapV2Router: INSUFFICIENT_A_AMOUNT');
         require(amountB >= amountBMin, 'UniswapV2Router: INSUFFICIENT_B_AMOUNT');
     }

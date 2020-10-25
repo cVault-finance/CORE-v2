@@ -5,25 +5,26 @@ cd $DIR
 
 rm -rf tmp_contracts
 cp -R contracts tmp_contracts
-# mkdir -p contracts/v612
 rm -rf artifacts
 rm -rf cache
-yarn run buidler remove-logs
-npx truffle-flattener contracts/v612/LGE.sol >> ./flattened_LGE.sol
+rm -rf build
+mkdir -p flattened_sols
+rm flattened_sols/flattened_LGE.sol
+yarn run hardhat remove-logs
+function pause(){
+ read -s -n 1 -p "Press any key to continue . . ."
+ echo ""
+}
+npx truffle-flattener contracts/v612/LGE.sol >> flattened_sols/flattened_LGE.sol
+echo "Be sure to remove duplicate SPDX licenses at this point in the flattened_sols directory"
+pause
 rm -rf contracts
 mkdir -p contracts/v612
-mv ./flattened_LGE.sol contracts/v612/LGE.sol
+cp flattened_sols/flattened_LGE.sol contracts/v612/LGE.sol
+echo "It would be wise to try npx oz deploy at this step if there is a contract in here being deployed behind a proxy. But make sure not to use the truffle output. Buidler output goes in /artifacts"
 pause
-npx truffle compile
-# mkdir -p flattened_sols
-# function pause(){
-#  read -s -n 1 -p "Press any key to continue . . ."
-#  echo ""
-# }
-# pause
-# npx truffle compile
-# # npx oz deploy
-# mv contracts/v612/flattened_LGE.sol flattened_sols
-# rm -rf contracts
-# mv tmp_contracts contracts
-# echo "Built LGE.sol"
+rm -rf build
+npx hardhat compile
+rm -rf contracts
+mv tmp_contracts contracts
+echo "Built LGE.sol"

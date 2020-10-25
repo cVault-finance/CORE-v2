@@ -53,7 +53,7 @@ module.exports = {
       settings: {
         optimizer: {
           enabled: true,
-          runs: 999999
+          runs: 99999
         },
         evmVersion: "byzantium"
       }

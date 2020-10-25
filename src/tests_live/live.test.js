@@ -546,10 +546,6 @@ const mintwBTCTo = async (to, amt) => {
     const balanceBefore = await WBTCContract.balanceOf(to)
     impersonate(MAINNET_WBTC_MINTER);
     impersonate(DEAD_ADDRESS);
-<<<<<<< HEAD
-
-=======
->>>>>>> b1273db3be2c18b466b1f17f5a4ade3097983b0a
     await WBTCContract.mint(DEAD_ADDRESS, parseInt(amt) * 100, { from: MAINNET_WBTC_MINTER }); // its minting less ? so lets just mint a lot and trasnfer from trashan
     await WBTCContract.transfer(to, amt, { from: DEAD_ADDRESS });
     console.log(`Balance after mint wbtc ${await WBTCContract.balanceOf(to)}`)

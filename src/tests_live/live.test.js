@@ -282,12 +282,24 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // console.log(`Price delta ${((valueOFCOREINNEWPAIR < valueofWBTCINHTENEWPAIR ? valueofWBTCINHTENEWPAIR / valueOFCOREINNEWPAIR : valueOFCOREINNEWPAIR / valueofWBTCINHTENEWPAIR) * 100) - 100}%`)
         // // Next, let's claim some LP from rando, who didn't actually contribute to the LGE
         // console.log("Next, let's claim some LP from rando, who didn't actually contribute to the LGE");
-    });*/
+    });
+
+    it("Doesn't give out LP to people who didn't contributeAnd doesn't allow for several contributions", async function () {
+        this.timeout(120000)
+
+        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+        await iLGE.addLiquidityETH({ from: joe, value: 1e18 });
+        await advanceByHours(999); // we make it finished but not call end
+        await endLGEAdmin(iLGE);
+        await expectRevert(iLGE.claimLP({ from: rando }), "LEG : Nothing to claim")
+        await iLGE.claimLP({ from: joe });
+        await expectRevert(iLGE.claimLP({ from: joe }), "LEG : Nothing to claim")
+        await expectRevert(iLGE.claimAndStakeLP({ from: joe }), "LEG : Nothing to claim")
+
+    })
 
 
 
-
-/*
     it("It gives units as expected putting in 1 ETH and can claim lp", async function () {
 
         this.timeout(60000)
@@ -455,7 +467,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await advanceByHours(999); // we make it finished but not call end
 
         await endLGEAdmin(this.iLGE);
-
+        console.log(`We created this much LP token units ${await this.iLGE.totalLPCreated()}`)
         let vault = await CoreVault.at(CORE_VAULT_ADDRESS);
 
         await vault.add(0, await iLGE.wrappedTokenUniswapPair(), true, true, { from: CORE_MULTISIG });
@@ -463,6 +475,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         await this.iLGE.claimAndStakeLP({ from: joe });
         // mapping(uint256 => mapping(address => UserInfo)) public userInfo;
         // This might be gotten diffrently i dont know cant check rn
+        console.log("Amount that user has in vault")
         console.log(parseInt(((await vault.userInfo(1, joe)).amount).toString()))
         assert(parseInt(((await vault.userInfo(1, joe)).amount).toString()) > 0, "User wasn't credited for deposit in the vault");
 

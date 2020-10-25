@@ -8,7 +8,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 99999
+        runs: 200
       }
     }
   },
@@ -43,7 +43,7 @@ module.exports = {
       },
       forking: {
         url: "https://eth-mainnet.alchemyapi.io/v2/TsLEJAhX87icgMO7ZVyPcpeEgpFEo96O",
-        blockNumber: 11121922,
+        blockNumber: 11122325,
       }
     }
   }

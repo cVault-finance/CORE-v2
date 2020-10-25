@@ -78,19 +78,14 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
 
-        // await globalsLive.setTransferHandler(this.CORETransferHandler.address, { from: this.owner });
-        this.LGEUpgrade = await LGE.new({ from: pervert, gasLimit: 50000000 });
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
-        let proxyAdmin = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
 
         // We check units of someone here
         const preUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
         const preUpgradeTimestampStart = await this.iLGE.contractStartTimestamp();
 
         // We upgrade
-        await proxyAdmin.upgrade(LGE_2_PROXY_ADDRESS, this.LGEUpgrade.address, { from: this.owner });
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
-        // await this.iLGE.finalizeTokenWrapAddress(this.cBTC.address, { from: this.owner });
 
         // We sanity check units again after upgrade in case of a memory error
         const postUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');

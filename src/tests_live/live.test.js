@@ -36,7 +36,8 @@ const WBTC_ADDRESS = "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
 const MAINNET_WBTC_MINTER = "0xca06411bd7a7296d7dbdd0050dfc846e95febeb7";
 const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 const CORE_ADDRESS = "0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7";
-
+const CBTC_PROXY = "0x7b5982dcAB054C377517759d0D2a3a5D02615AB8";
+const UNISWAP_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
 const snapshot = require('./snapshot');
 
 const ProxyAdminContract = artifacts.require('ProxyAdmin');
@@ -49,22 +50,29 @@ const MAX_53_BIT = 4503599627370495;
 const GAS_LIMIT = 0x1fffffffffffff;
 
 const impersonate = async (address) => {
+    console.log(`Impersonating ${address}`)
     await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
         params: [address]
-    }
-    )
+    })
+}
+
+const upgrade = async (owner, proxy_address, toContractImplementationAddress /* normally is CONTRACT.new() */ ) => {
+    let adminProxy = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
+    await impersonate(owner);
+    console.log(`adminProxy.upgrade: ${adminProxy.address}, ${proxy_address}, ${toContractImplementationAddress}`);
+    return await adminProxy.upgrade(proxy_address, toContractImplementationAddress, {from: owner});
 }
 
 contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
-    console.log(x3);
+    // console.log(x3);
 
-    it("Sanity test for Ganache", async function () {
-        let actual_test_block = (await web3.eth.getBlock("latest")).number;
-        console.log(actual_test_block);
-        console.log(`BLOCK NUMBER: ${this.test_block_num}\nACTUAL BLCOK NUMBER: ${actual_test_block}`);
-        assert(actual_test_block > 11088005, "Test environment problem 1");
-    });
+    // it("Sanity test for Ganache", async function () {
+    //     let actual_test_block = (await web3.eth.getBlock("latest")).number;
+    //     console.log(actual_test_block);
+    //     console.log(`BLOCK NUMBER: ${this.test_block_num}\nACTUAL BLCOK NUMBER: ${actual_test_block}`);
+    //     assert(actual_test_block > 11088005, "Test environment problem 1");
+    // });
     afterEach(async function () {
         console.log(`Reverting to snapshot ${this.snapshotId}`);
         await snapshot.revertToSnapshot(this.snapshotId);
@@ -77,54 +85,114 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         console.log(`Took snapshot ${this.snapshotId}`);
         this.owner = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
         this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
-
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
 
         // We check units of someone here
-        const preUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
-        const preUpgradeTimestampStart = await this.iLGE.contractStartTimestamp();
+        // const preUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
+        // const preUpgradeTimestampStart = await this.iLGE.contractStartTimestamp();
 
         // We upgrade
-        this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+        // this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
 
         // We sanity check units again after upgrade in case of a memory error
-        const postUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
-        const postUpgradeTimestampStart = await this.iLGE.contractStartTimestamp();
-        assert(parseInt(preUpgradeUnitsOfRandomPerson) == parseInt(postUpgradeUnitsOfRandomPerson), "Mismatch units after upgrade mem error");
-        assert(parseInt(preUpgradeTimestampStart) == parseInt(postUpgradeTimestampStart), "Mismatch units after upgrade mem error");
+        // const postUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
+        // const postUpgradeTimestampStart = await this.iLGE.contractStartTimestamp();
+        // assert(parseInt(preUpgradeUnitsOfRandomPerson) == parseInt(postUpgradeUnitsOfRandomPerson), "Mismatch units after upgrade mem error");
+        // assert(parseInt(preUpgradeTimestampStart) == parseInt(postUpgradeTimestampStart), "Mismatch units after upgrade mem error");
 
         // get the wrappedToken value (cBTC in this case.)
-        let wrappedTokenAddress = await this.iLGE.wrappedToken();
-        let wrappedToken = await cBTC.at(wrappedTokenAddress);
+        // this.wrappedTokenAddress = await this.iLGE.wrappedToken();
+        // let wrappedToken = await cBTC.at(this.wrappedTokenAddress);
 
         // Before ending the LGE, you have to set the LGEAddress on cBTC...
-        await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: CORE_MULTISIG });
+        // await wrappedToken.setLGEAddress(LGE_2_PROXY_ADDRESS, { from: CORE_MULTISIG });
 
+        // let adminProxy = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
+        // Upgrade cBTC
+        // let newCBTCImpl = await cBTC.new();
+        // impersonate(this.owner);
+        // console.log(`adminProxy.upgrade: ${adminProxy.address}, ${CBTC_PROXY}, ${newCBTCImpl.address}`);
+        // await adminProxy.upgrade(CBTC_PROXY, newCBTCImpl.address, {from: this.owner});
+
+
+        // this.router = await UniswapV2Router02.new(this.factory.address, this.weth.address, { from: x3 });
     });
 
-    // it("Tests should fork from mainnet at a block number after the LGE is started and deployed", async () => {
-    //     // Sanity tests to assure ganache restarts for each test trial
-    //     this.mainnet_deployment_address = "0x5A16552f59ea34E44ec81E58b3817833E9fD5436";
-    //     let block = await web3.eth.getBlock("latest")
-    //     block_number = block.number;
-    //     // Lge upgrading test
-    //     // proxy admin for upgrades
-    //     // We get new transfer handler
-    //     // we upgrade LGE
-    //     let x3bal = await web3.eth.getBalance(x3);
-    //     console.log(`x3bal: ${x3bal}`);
-    //     console.log(x3bal);
-    //     //assert(x3bal == ether('100'), "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
-    //     assert(x3bal == '100', "If this was the first test run then we should expect 100 ETH for the first wallet. You should restart ganache.")
-    //     // Send 1 eth to the x3 address to deliberately break tests if they're run twice without restarting ganache
-    //     await web3.eth.sendTransaction({
-    //         from: pervert,
-    //         to: x3,
-    //         value: 1
-    //     });
-    //     x3bal = await web3.eth.getBalance(x3);
-    //     assert(x3bal == '101', "ETH balance error on wallet 0");
-    // });
+    it("Recreates removal of liquidity circumstances successfully", async function () {
+        impersonate(x3);
+        this.weth = await WETH9.at("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
+        this.factory = await UniswapV2Factory.at(UNISWAP_FACTORY_ADDRESS);
+        let uniRouter = await UniswapV2Router02.new(this.factory.address, this.weth.address, { from: x3 });
+        console.log('weth address', this.weth.address);
+        console.log('this.factory.address', this.factory.address);
+
+        let latest_block_data = (await web3.eth.getBlock("latest"));
+        let actual_test_block = latest_block_data.number;
+        let latest_block_timestamp = latest_block_data.timestamp;
+        const mrLiquidityRemover = "0x1f4d088464a0175c8ddb90bc7a510b1d5a0da1a6";
+        await impersonate(mrLiquidityRemover);
+
+        // let newCBTC = await cBTC.new();
+        // await upgrade(this.owner, CBTC_PROXY, newCBTC.address);
+
+        let cbtcCorePair = await UniV2Pair.at("0x6fad7d44640c5cd0120deec0301e8cf850becb68");
+        await cbtcCorePair.approve(uniRouter.address, "9999999999999999999999", {from: mrLiquidityRemover});
+
+        const newTHandler = await TransferHandler01.new();
+        let adminProxy = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
+        await impersonate(this.owner);
+        console.log(`adminProxy.upgrade: ${adminProxy.address}, ${TRANSFER_HANDLER_ADDRESS}, ${newTHandler.address}`);
+        await adminProxy.upgrade(TRANSFER_HANDLER_ADDRESS, newTHandler.address, {from: this.owner});
+
+        // Try to remove liquidity
+        await impersonate(mrLiquidityRemover);
+        let liquidity = new BN("891954058369");
+        let amountAMin = new BN("144059597049542987");
+        let amountBMin = new BN("5469633");
+        let deadline = new BN("9999999999999999"); //(new BN(latest_block_timestamp)).add(new BN(1200)); // 120 seconds from this latest block
+        let liqRemoval = await uniRouter.removeLiquidity(
+            CORE_ADDRESS,
+            CBTC_PROXY,
+            liquidity.toString(),
+            amountAMin.toString(),
+            amountBMin.toString(),
+            mrLiquidityRemover,
+            deadline.toString(),
+            {from: mrLiquidityRemover}
+        )
+    })
+
+    /*
+    it("Test cBTC wrap of wBTC", async function () {
+        let gibbs = "0xe27953E859203598387968F04F55fD130a234C67";
+        impersonate(gibbs);
+
+        let wbtcInstance = await WBTC.at("0x2260fac5e5542a773aa44fbcfedf7c193bc2c599");
+        let cBTCInstance = await cBTC.at(this.wrappedTokenAddress);
+        let allowance = await wbtcInstance.allowance(gibbs, cBTCInstance.address, {from: gibbs})
+        console.log(`# initial WBTC allowance for spender, cBTC: ${allowance}`);
+        await wbtcInstance.approve(cBTCInstance.address, 100000000, {from: gibbs});
+        console.log(`# new WBTC allowance for spender, cBTC: ${allowance}`);
+        let r = await cBTCInstance.wrap(gibbs, 1, {from: gibbs});
+        
+        // console.log(r);
+    })*/
+
+    // it("Adds LP", async function () {
+    //     this.timeout(120000)
+    //     let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+    //     await endLGEAdmin(iLGE);
+    // })
+
+/*
+    it("Doesn't give out LP to people who didn't contribute", async function () {
+        this.timeout(120000)
+        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
+        await advanceByHours(999); // we make it finished but not call end
+        await endLGEAdmin(iLGE);
+        await expectRevert(iLGE.claimLP({ from: rando }), "LEG : Nothing to claim")
+    })
+
 
     it("Should have a core vault showing the correct token address on mainnet", async () => {
         let cv = await CoreVault.at(CORE_VAULT_ADDRESS);
@@ -214,18 +282,12 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // console.log(`Price delta ${((valueOFCOREINNEWPAIR < valueofWBTCINHTENEWPAIR ? valueofWBTCINHTENEWPAIR / valueOFCOREINNEWPAIR : valueOFCOREINNEWPAIR / valueofWBTCINHTENEWPAIR) * 100) - 100}%`)
         // // Next, let's claim some LP from rando, who didn't actually contribute to the LGE
         // console.log("Next, let's claim some LP from rando, who didn't actually contribute to the LGE");
-    });
-
-    it("Doesn't give out LP to people who didn't contribute", async function () {
-        this.timeout(120000)
-        let iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
-        await advanceByHours(999); // we make it finished but not call end
-        await endLGEAdmin(iLGE);
-        await expectRevert(iLGE.claimLP({ from: rando }), "LEG : Nothing to claim")
-    })
+    });*/
 
 
 
+
+/*
     it("It gives units as expected putting in 1 ETH and can claim lp", async function () {
 
         this.timeout(60000)
@@ -524,7 +586,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
 
     });
 
-
+*/
 
 });
 
@@ -559,7 +621,10 @@ const endLGEAdmin = async (iLGE) => {
     const { _reserve0: coreReserve, _reserve1: wethReserveInCorePair } = await this.ETH_CORE_PAIR.getReserves();
     const { _reserve0: wbtcReserve, _reserve1: wethReserveInWbtcPair } = await this.ETH_WBTC_PAIR.getReserves();
     const ratio1ETHWholeBuysXCOREUnits = await router.getAmountOut(1e18.toString(), wethReserveInCorePair, coreReserve);
-    const ratio1ETHWholeBuysXWrappedTokenUnits = await router.getAmountOut(1e18.toString(), wethReserveInWbtcPair, wbtcReserve);
+    let ratio1ETHWholeBuysXWrappedTokenUnits = await router.getAmountOut(1e18.toString(), wethReserveInWbtcPair, wbtcReserve);
+    console.log(`pre: ${ratio1ETHWholeBuysXWrappedTokenUnits}`);
+    ratio1ETHWholeBuysXWrappedTokenUnits = ratio1ETHWholeBuysXWrappedTokenUnits.mul(new BN(103)).div(new BN(100));
+    console.log(`post: ${ratio1ETHWholeBuysXWrappedTokenUnits}`);
     console.log(`ratio1ETHWholeBuysXCOREUnits ${ratio1ETHWholeBuysXCOREUnits} ratio1ETHWholeBuysXWrappedTokenUnits ${ratio1ETHWholeBuysXWrappedTokenUnits}`)
     await iLGE.addLiquidityToPairAdmin(ratio1ETHWholeBuysXCOREUnits, ratio1ETHWholeBuysXWrappedTokenUnits, { from: CORE_MULTISIG });
     assert((await iLGE.LGEFinished()) == true, "LGE didn't actually finish");

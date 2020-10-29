@@ -64,27 +64,72 @@ import "hardhat/console.sol";
 //                     J$F               $$
 //                     $$               .$F
 //                    4$"               $P"
-//                    $"               dP    kjRWG0tKDA4A
+//                    $"               dP    kjRWG0tKD4A
 //
 // I'll have you know...
-contract FlashAbitrage {
+contract FlashAbitrage is Ownable {
 
 
 address public distributor;
-constructor (address _distributor) {
-    distributor = _distributor;
-}
-
-struct Strategy {
-
-}
-
-struct Swap {
-
-}
+address internal WETH = 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2;
 
 Strategy[] public strategies;
 
+constructor (address _distributor) {
+    distributor = _distributor; // we dont hard set it because its not live yet
+                                // So can't easily mock it in tests
+}
+
+fallback () external payable {
+    if(msg.sender != WETH) require(false, "Unsupported call");
+}
+
+
+/// Example stategy
+// name "CORE worth too much in cBTC pair"
+// If we have 3 pools (which we do currently)
+// To flash swap that strategy
+// We borrow CORE from core pair
+// token bought is ETH CORE pair CORE/WETH
+// Second step is to sell CORE into cBTC/CORE pair with purchased token is cBTC
+// Third step is unwrapping cBTC into wBTC
+// Forth step is selling wBTC for ETH in wBTC pair with purchased token wBTC
+// Fifth step is to put some of that ETH inside CORE pair for the borrow from step 1 to go through 
+// and then tx can complete
+// Fifth step is where profit is calculated
+struct Strategy {
+    string name; // Name of the stregy for easy front end display
+    Step[] steps; // Steps in the strategy eg WETH -> CORE is a step definied by the swap struct
+}
+
+struct Step {
+    uint8 stepType; // a type of step id
+                    // Steps might be :
+                    // initial borrow 0
+                    // Swap 1
+                    // wrap 2
+                    // unwrap 3
+
+    address token0; // Token0 and token1 are used to identify the pair without sorting
+    address token1;
+    address contractToInteractWith; // Depending on step - for a swap/borrow its pair, for a wrap its wrapper (cBTC eg.)
+    address tokenBought;
+}
+
+
+// This might be public in the future
+// once i can think of all the possible repercussions
+function addStrategy(string memory _name, Step[] _steps) public onlyOwner {
+    strategies.push({
+        name : _name,
+        steps : _steps
+    });
+}
+
+// view the strategy
+function strategyInfo(uint246 strategyPID) public view returns (Strategy){
+
+}
 
 // returns possible profit for front end display
 function possibleStrategyProfit(uint256 strategyPID) public view returns (uint256 profitETH) {
@@ -96,6 +141,13 @@ function possibleStrategyProfit(uint256 strategyPID) public view returns (uint25
 // the strategies can't lose money only gain
 function executeStrategy(uint256 strategyPID) public {
 
+}
+
+// A function that lets owner remove any tokens from this addrss
+// note this address shoudn't hold any tokens
+// And if it does that means someting already went wrong or someone send them to this address
+function rescueTokens(address token, uint256 amt) public onlyOwner {
+    IERC20(token).transfer(owner, amt);
 }
 
 

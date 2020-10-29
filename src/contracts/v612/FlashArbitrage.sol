@@ -84,6 +84,19 @@ fallback () external payable {
     if(msg.sender != WETH) require(false, "Unsupported call");
 }
 
+// Turns off the CORE transfer fee for the time time of this function execution
+// This is done because otherwise 1% moves are needed to arbitrage profitably
+// With this fee being off we can profit even of 1 pip moves between prices
+// It does not matter if the CORE for farmers is gained from transfer fees
+// Or from arbitrage - since fee can be added by just market buying CORE and sending to farmers
+// Note market buying CORE and sending to farmers creates a postive infinite feedback loop
+// Since they will sell it and generate more fees, which then sold generate more fees
+// Making fees recursive and infinite 
+modifier feeOff() {
+    ITransferHandler(coreGlobals.TransferHandler()).feeOn(false);
+    _;
+    ITransferHandler(coreGlobals.TransferHandler()).feeOn(true);
+}
 
 /// Example stategy
 // name "CORE worth too much in cBTC pair"
@@ -120,15 +133,19 @@ struct Step {
 // This might be public in the future
 // once i can think of all the possible repercussions
 function addStrategy(string memory _name, Step[] _steps) public onlyOwner {
+
+    // no need to check for duplicates here
+    // Doesn't really matter if there are any
     strategies.push({
         name : _name,
         steps : _steps
     });
+
 }
 
 // view the strategy
 function strategyInfo(uint246 strategyPID) public view returns (Strategy){
-
+    return strategies[strategyPID];
 }
 
 // returns possible profit for front end display
@@ -139,7 +156,7 @@ function possibleStrategyProfit(uint256 strategyPID) public view returns (uint25
 // Public function that executes a strategy
 // since its all a flash swap
 // the strategies can't lose money only gain
-function executeStrategy(uint256 strategyPID) public {
+function executeStrategy(uint256 strategyPID) feeOff public {
 
 }
 

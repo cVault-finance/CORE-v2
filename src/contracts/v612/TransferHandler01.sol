@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol"; // for WETH
 import "hardhat/console.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
@@ -132,9 +133,11 @@ contract TransferHandler01 is OwnableUpgradeSafe {
         // So we have to sync it before to the last LP token value.
         uint256 _LPSupplyOfPairNow = IERC20(pair).totalSupply();
         console.log("syncing _LPSupplyOfPairNow",_LPSupplyOfPairNow);
-        console.log("syncing lpSupplyOfPair[pair]",lpSupplyOfPair[pair]);
+        console.log("syncing lpSupply In state",lpSupplyOfPair[pair]);
 
         lpTokenBurn = lpSupplyOfPair[pair] > _LPSupplyOfPairNow;
+        console.log("lpSupplyOfPair[pair] - _LPSupplyOfPairNow", lpSupplyOfPair[pair] - _LPSupplyOfPairNow);
+        console.log("lpTokenBurn", lpTokenBurn);
         lpSupplyOfPair[pair] = _LPSupplyOfPairNow;
 
         lastIsMint = false;
@@ -155,6 +158,7 @@ contract TransferHandler01 is OwnableUpgradeSafe {
         uint256 amount
         ) public {
             console.log("TransferHandler01::handleTransfer");
+            console.log("pair is sender", isPair[sender]);
             
             // If the pair is sender it might be a burn
             // So we sync and then check
@@ -171,7 +175,7 @@ contract TransferHandler01 is OwnableUpgradeSafe {
 
         }
 
-
+    bool pairSentOutCORE;
     function calculateAmountsAfterFee(        
         address sender, 
         address recipient, 

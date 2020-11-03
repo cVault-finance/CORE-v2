@@ -16,3 +16,4 @@ Proxy/node_modules
 src/contracts/*/flattened_*.sol
 src/build_contracts
 src/tmp_contracts
+src/contracts/v612/FlashArbitrageExecutor.sol

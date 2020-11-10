@@ -13,6 +13,7 @@ const UniV2Pair = artifacts.require("UniswapV2Pair");
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 const FeeApprover = artifacts.require('FeeApprover');
 const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
+const FlashArbitrageExecutor = artifacts.require('FlashArbitrageExecutor');
 
 const ERC95 = artifacts.require('ERC95');
 const WBTC = artifacts.require('WBTC');
@@ -38,6 +39,7 @@ const DEAD_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 const CORE_ADDRESS = "0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7";
 const CBTC_PROXY = "0x7b5982dcAB054C377517759d0D2a3a5D02615AB8";
 const UNISWAP_FACTORY_ADDRESS = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+const CBTC_CORE_PAIR_ADDRESS = "0x6fad7D44640c5cd0120DEeC0301e8cf850BecB68";
 const snapshot = require('./snapshot');
 
 const ProxyAdminContract = artifacts.require('ProxyAdmin');
@@ -89,6 +91,7 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         this.OxRevertMainnetAddress = '0xd5b47B80668840e7164C1D1d81aF8a9d9727B421';
         this.iLGE = await LGE.at(LGE_2_PROXY_ADDRESS);
 
+
         // We check units of someone here
         // const preUpgradeUnitsOfRandomPerson = await this.iLGE.unitsContributed('0xf015aad0d3d0c7468f5abeac1c50043de3e5cdda');
         // const preUpgradeTimestampStart = await this.iLGE.contractStartTimestamp();
@@ -120,51 +123,186 @@ contract('LGE Live Tests', ([x3, pervert, rando, joe, john, trashcan]) => {
         // this.router = await UniswapV2Router02.new(this.factory.address, this.weth.address, { from: x3 });
     });
 
-    it("Recreates removal of liquidity circumstances successfully", async function () {
-        this.timeout(120000)
-        impersonate(x3);
-        this.weth = await WETH9.at("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
-        this.factory = await UniswapV2Factory.at(UNISWAP_FACTORY_ADDRESS);
-        let uniRouter = await UniswapV2Router02.new(this.factory.address, this.weth.address, { from: x3 });
-        console.log('weth address', this.weth.address);
-        console.log('this.factory.address', this.factory.address);
+    it("Arbitrage Profit from Price being too high", async function () {
+        this.timeout(120000);
 
-        let latest_block_data = (await web3.eth.getBlock("latest"));
-        let actual_test_block = latest_block_data.number;
-        let latest_block_timestamp = latest_block_data.timestamp;
-        const mrLiquidityRemover = "0x1f4d088464a0175c8ddb90bc7a510b1d5a0da1a6";
-        await impersonate(mrLiquidityRemover);
-
-        // let newCBTC = await cBTC.new();
-        // await upgrade(this.owner, CBTC_PROXY, newCBTC.address);
-
-        let cbtcCorePair = await UniV2Pair.at("0x6fad7d44640c5cd0120deec0301e8cf850becb68");
-        await cbtcCorePair.approve(uniRouter.address, "9999999999999999999999", { from: mrLiquidityRemover });
-
-        const newTHandler = await TransferHandler01.new();
-        let adminProxy = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
-        await impersonate(this.owner);
-        console.log(`adminProxy.upgrade: ${adminProxy.address}, ${TRANSFER_HANDLER_ADDRESS}, ${newTHandler.address}`);
-        await adminProxy.upgrade(TRANSFER_HANDLER_ADDRESS, newTHandler.address, { from: this.owner });
-
-        // Try to remove liquidity
-        await impersonate(mrLiquidityRemover);
-        let liquidity = new BN("891954058369");
-        let amountAMin = new BN("144059597049542987");
-        let amountBMin = new BN("5469633");
-        let deadline = new BN("9999999999999999"); //(new BN(latest_block_timestamp)).add(new BN(1200)); // 120 seconds from this latest block
-        console.log(`Simulating past liquidity removal`);
-        let liqRemoval = await uniRouter.removeLiquidity(
-            CORE_ADDRESS,
-            CBTC_PROXY,
-            liquidity.toString(),
-            amountAMin.toString(),
-            amountBMin.toString(),
-            mrLiquidityRemover,
-            deadline.toString(),
-            { from: mrLiquidityRemover }
-        )
+        const FlashArbitrageExecutorContract = await FlashArbitrageExecutor.new(DEAD_ADDRESS);
+        // await flashArbTest.cBTCPriceIsTooHigh(10, 3);
     })
+
+
+
+    // it("Arbitrage Profit from Price being too high  - no fee", async function () {
+    //     this.timeout(120000);
+    //     const transferHandler = await TransferHandler01.at(TRANSFER_HANDLER_ADDRESS);
+
+    //     const flashArbTest = await FlashArbTestFeeOn.new();
+    //     await transferHandler.editNoFeeList(flashArbTest.address, true, { from: CORE_MULTISIG });
+
+    //     // await flashArbTest.cBTCPriceIsTooHigh(10, 3);
+
+    // })
+
+    // it("Arbitrage Profit from Price being too low - no fee", async function () {
+    //     this.timeout(120000);
+    //     const transferHandler = await TransferHandler01.at(TRANSFER_HANDLER_ADDRESS);
+
+    //     const flashArbTest = await FlashArbTestFeeOn.new();
+    //     await transferHandler.editNoFeeList(flashArbTest.address, true, { from: CORE_MULTISIG });
+    //     // await flashArbTest.cBTCPriceIsTooLow(0, 3);
+    // })
+
+
+    it("Arbitrage Profit from CORE Price being too low", async function () {
+        this.timeout(120000);
+        // const newTHandler = await TransferHandler01.new();
+        // let adminProxy = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
+        // await impersonate(CORE_MULTISIG);
+        // await adminProxy.upgrade(TRANSFER_HANDLER_ADDRESS, newTHandler.address, { from: CORE_MULTISIG });
+        const transferHandler = await TransferHandler01.at(TRANSFER_HANDLER_ADDRESS);
+
+        const uniswapCOREPair = await UniV2Pair.at("0x32ce7e48debdccbfe0cd037cc89526e4382cb81b");
+        const FlashArbitrageExecutorContract = await FlashArbitrageExecutor.new(DEAD_ADDRESS);
+        await transferHandler.editNoFeeList(FlashArbitrageExecutorContract.address, true, { from: CORE_MULTISIG });
+
+        // await flashArbTest.cBTCPriceIsTooLow(10, 3);
+        // pairs[0] = cBTCxCOREPair;
+        // pairs[1] = wETHxwBTCPair;
+        // pairs[2] = wETHxCOREPair;
+
+        // feeOnTransfers[0] = 0;
+        // feeOnTransfers[1] = 0;
+        // feeOnTransfers[2] = 0;
+
+        // token0Out[0] = false;
+        // token0Out[1] = false;
+        // token0Out[2] = true;
+        // await flashArbTest.strategyCOREUnderpriced();
+
+        // (uint256 feeOnTransferAmount, uint8 swapsCount)
+    })
+
+    it("Arbitrage Profit from CBTC Price being too low", async function () {
+        this.timeout(120000);
+
+        const transferHandler = await TransferHandler01.at(TRANSFER_HANDLER_ADDRESS);
+
+        const uniswapCOREPair = await UniV2Pair.at("0x32ce7e48debdccbfe0cd037cc89526e4382cb81b");
+        const FlashArbitrageExecutorContract = await FlashArbitrageExecutor.new(DEAD_ADDRESS);
+        await transferHandler.editNoFeeList(FlashArbitrageExecutorContract.address, true, { from: CORE_MULTISIG });
+        // await flashArbTest.strategyCBTCUnderpriced();
+        // 18607825490631392808
+        // (uint256 feeOnTransferAmount, uint8 swapsCount)
+    })
+
+    it("Arbitrage Profit from CBTC being too high at block 11207018", async function () {
+        this.timeout(120000);
+        const lastBlock = (await web3.eth.getBlock("latest")).number;
+        console.log(lastBlock);
+        assert(lastBlock == 11207018, "Wrong block for this test, try forking block 11207018");
+
+        const transferHandler = await TransferHandler01.at(TRANSFER_HANDLER_ADDRESS);
+
+        const uniswapCOREPair = await UniV2Pair.at("0x32ce7e48debdccbfe0cd037cc89526e4382cb81b");
+        const FlashArbitrageExecutorContract = await FlashArbitrageExecutor.new(DEAD_ADDRESS);
+        await transferHandler.editNoFeeList(FlashArbitrageExecutorContract.address, true, { from: CORE_MULTISIG });
+
+        await FlashArbitrageExecutorContract.executeStrategy(
+            "18607825490631392808",
+            ["0x6fad7D44640c5cd0120DEeC0301e8cf850BecB68", "0x32Ce7e48debdccbFE0CD037Cc89526E4382cb81b", "0xBb2b8038a1640196FbE3e38816F3e67Cba72D940"],
+            [0, 0, 0], [true, false, true], true);
+
+    })
+
+
+    it("Arbitrage Profit from CBTC being too high at block 11207018", async function () {
+        this.timeout(120000);
+
+
+        const transferHandler = await TransferHandler01.at(TRANSFER_HANDLER_ADDRESS);
+
+        const uniswapCOREPair = await UniV2Pair.at("0x32ce7e48debdccbfe0cd037cc89526e4382cb81b");
+        const FlashArbitrageExecutorContract = await FlashArbitrageExecutor.new(DEAD_ADDRESS);
+        await transferHandler.editNoFeeList(FlashArbitrageExecutorContract.address, true, { from: CORE_MULTISIG });
+
+        const profit = await FlashArbitrageExecutorContract.getStrategyProfitInBorrowToken(
+            ["0x6fad7D44640c5cd0120DEeC0301e8cf850BecB68", "0x32Ce7e48debdccbFE0CD037Cc89526E4382cb81b", "0xBb2b8038a1640196FbE3e38816F3e67Cba72D940"],
+            [0, 0, 0], [true, false, true]);
+        console.log("profit pric etoo low", profit.toString());
+
+        const profit1 = await FlashArbitrageExecutorContract.getStrategyProfitInBorrowToken(
+            ["0x6fad7D44640c5cd0120DEeC0301e8cf850BecB68", "0xBb2b8038a1640196FbE3e38816F3e67Cba72D940", "0x32Ce7e48debdccbFE0CD037Cc89526E4382cb81b"],
+            [0, 0, 0], [false, false, true]);
+        console.log("profit pric etoo high", profit1.toString());
+
+
+    })
+
+    it("Views block 11207018 profit accurately", async function () {
+        this.timeout(120000);
+        const lastBlock = (await web3.eth.getBlock("latest")).number;
+        console.log(lastBlock);
+        assert(lastBlock == 11207018, "Wrong block for this test, try forking block 11207018");
+
+        const transferHandler = await TransferHandler01.at(TRANSFER_HANDLER_ADDRESS);
+
+        const uniswapCOREPair = await UniV2Pair.at("0x32ce7e48debdccbfe0cd037cc89526e4382cb81b");
+        const FlashArbitrageExecutorContract = await FlashArbitrageExecutor.new(DEAD_ADDRESS);
+        await transferHandler.editNoFeeList(FlashArbitrageExecutorContract.address, true, { from: CORE_MULTISIG });
+
+        const profit = await FlashArbitrageExecutorContract.getStrategyProfitInBorrowToken(
+            ["0x6fad7D44640c5cd0120DEeC0301e8cf850BecB68", "0x32Ce7e48debdccbFE0CD037Cc89526E4382cb81b", "0xBb2b8038a1640196FbE3e38816F3e67Cba72D940"],
+            [0, 0, 0], [true, false, true]);
+
+        assert(profit == 13461193, "Profit view doesn't return correct profit");
+
+    })
+
+    // it("Recreates removal of liquidity circumstances successfully", async function () {
+    //     this.timeout(120000)
+    //     impersonate(x3);
+    //     this.weth = await WETH9.at("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
+    //     this.factory = await UniswapV2Factory.at(UNISWAP_FACTORY_ADDRESS);
+    //     let uniRouter = await UniswapV2Router02.new(this.factory.address, this.weth.address, { from: x3 });
+    //     console.log('weth address', this.weth.address);
+    //     console.log('this.factory.address', this.factory.address);
+
+    //     let latest_block_data = (await web3.eth.getBlock("latest"));
+    //     let actual_test_block = latest_block_data.number;
+    //     let latest_block_timestamp = latest_block_data.timestamp;
+    //     const mrLiquidityRemover = "0x1f4d088464a0175c8ddb90bc7a510b1d5a0da1a6";
+    //     await impersonate(mrLiquidityRemover);
+
+    //     // let newCBTC = await cBTC.new();
+    //     // await upgrade(this.owner, CBTC_PROXY, newCBTC.address);
+
+    //     let cbtcCorePair = await UniV2Pair.at("0x6fad7d44640c5cd0120deec0301e8cf850becb68");
+    //     await cbtcCorePair.approve(uniRouter.address, "9999999999999999999999", { from: mrLiquidityRemover });
+
+    //     const newTHandler = await TransferHandler01.new();
+    //     let adminProxy = await ProxyAdminContract.at(proxyAdmin_ADDRESS);
+    //     await impersonate(this.owner);
+    //     console.log(`adminProxy.upgrade: ${adminProxy.address}, ${TRANSFER_HANDLER_ADDRESS}, ${newTHandler.address}`);
+    //     await adminProxy.upgrade(TRANSFER_HANDLER_ADDRESS, newTHandler.address, { from: this.owner });
+
+    //     // Try to remove liquidity
+    //     await impersonate(mrLiquidityRemover);
+    //     let liquidity = new BN("891954058369");
+    //     let amountAMin = new BN("144059597049542987");
+    //     let amountBMin = new BN("5469633");
+    //     let deadline = new BN("9999999999999999"); //(new BN(latest_block_timestamp)).add(new BN(1200)); // 120 seconds from this latest block
+    //     console.log(`Simulating past liquidity removal`);
+    //     let liqRemoval = await uniRouter.removeLiquidity(
+    //         CORE_ADDRESS,
+    //         CBTC_PROXY,
+    //         liquidity.toString(),
+    //         amountAMin.toString(),
+    //         amountBMin.toString(),
+    //         mrLiquidityRemover,
+    //         deadline.toString(),
+    //         { from: mrLiquidityRemover }
+    //     )
+    // })
 
     /*
     it("Test cBTC wrap of wBTC", async function () {

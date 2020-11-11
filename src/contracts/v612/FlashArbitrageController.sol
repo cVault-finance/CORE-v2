@@ -6,7 +6,9 @@ import '@uniswap/lib/contracts/libraries/SafeERC20Namer.sol';
 
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+// import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
 
 // _________  ________ _____________________                                             
@@ -87,7 +89,7 @@ interface IFlashArbitrageExecutor {
 }
 
 
-contract FlashArbitrageController is Ownable {
+contract FlashArbitrageController is OwnableUpgradeSafe {
     using SafeMath for uint256;
 
     event StrategyAdded(string indexed name, uint256 indexed id, address[] pairs, bool feeOff, address indexed originator);
@@ -104,21 +106,24 @@ contract FlashArbitrageController is Ownable {
 
     uint256 public revenueSplitFeeOffStrategy;
     uint256 public revenueSplitFeeOnStrategy;
-    uint8 MAX_STEPS_LEN; // This variable is responsible to minimsing risk of gas limit strategies being added
-                        // Which would always have 0 gas cost because they could never complete
 
     address public  distributor;
     IFlashArbitrageExecutor public executor;
-    address public cBTC = 0x7b5982dcAB054C377517759d0D2a3a5D02615AB8;
-    address public CORE = 0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7;
-    address public wBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    address public cBTC;
+    address public CORE;
+    address public wBTC;
     bool depreciated; // This contract can be upgraded to a new one
                       // But we don't want people to add new strategies if its depreciated
+    uint8 MAX_STEPS_LEN; // This variable is responsible to minimsing risk of gas limit strategies being added
+                        // Which would always have 0 gas cost because they could never complete
     Strategy[] public strategies;
 
 
-    constructor (address _executor, address _distributor)  public  {
-
+    function initialize(address _executor, address _distributor) initializer public  {
+        require(tx.origin == address(0x5A16552f59ea34E44ec81E58b3817833E9fD5436));
+        cBTC = 0x7b5982dcAB054C377517759d0D2a3a5D02615AB8;
+        CORE = 0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7;
+        wBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
         distributor = _distributor; // we dont hard set it because its not live yet
                                     // So can't easily mock it in tests
         executor = IFlashArbitrageExecutor(_executor);
@@ -253,6 +258,7 @@ contract FlashArbitrageController is Ownable {
     function addNewStrategyWithFeeOnTransferTokens(bool borrowToken0, address[] memory pairs, uint256[] memory feeOnTransfers) public returns (uint256 strategyID) {
         require(!depreciated, "This Contract is depreciated");
         require(pairs.length <= MAX_STEPS_LEN, "FA Controller - too many steps");
+        require(pairs.length > 1, "FA Controller - Specifying one pair is not arbitage");
         require(pairs.length == feeOnTransfers.length, "FA Controller: Malformed Input -  pairs and feeontransfers should equal");
         bool[] memory token0Out = new bool[](pairs.length);
         // First token out is the same as borrowTokenOut

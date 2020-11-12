@@ -121,6 +121,8 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
 
     function initialize(address _executor, address _distributor) initializer public  {
         require(tx.origin == address(0x5A16552f59ea34E44ec81E58b3817833E9fD5436));
+        OwnableUpgradeSafe.__Ownable_init();
+
         cBTC = 0x7b5982dcAB054C377517759d0D2a3a5D02615AB8;
         CORE = 0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7;
         wBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;

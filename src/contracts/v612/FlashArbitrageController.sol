@@ -216,8 +216,20 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
 
         executor.executeStrategy(currentStrategy.pairs, currentStrategy.feeOnTransfers, currentStrategy.token0Out, currentStrategy.cBTCSupport);
 
-        // console.log("Executed Strategy");
+        splitProfit(currentStrategy);
+    }
 
+    // Miner-friendly strategy executor
+    function executeStrategy(uint256 inputAmount, uint256 strategyPID) public {
+        require(!depreciated, "This Contract is depreciated");
+        Strategy memory currentStrategy = strategies[strategyPID];
+
+        executor.executeStrategy(inputAmount ,currentStrategy.pairs, currentStrategy.feeOnTransfers, currentStrategy.token0Out, currentStrategy.cBTCSupport);
+
+        splitProfit(currentStrategy);
+    }
+
+    function splitProfit(Strategy memory currentStrategy) internal {
         // Eg. Token 0 was out so profit token is token 1
         address profitToken = currentStrategy.token0Out[0] ? 
             IUniswapV2Pair(currentStrategy.pairs[0]).token1() 
@@ -239,7 +251,6 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
         // console.log("Send revenue split now have ", IERC20(profitToken).balanceOf(address(this)) );
 
         safeTransfer(profitToken, distributor, IERC20(profitToken).balanceOf(address(this)));
-
     }
 
 

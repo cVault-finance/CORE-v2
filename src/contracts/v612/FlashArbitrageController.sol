@@ -3,6 +3,8 @@ pragma experimental ABIEncoderV2;
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/lib/contracts/libraries/SafeERC20Namer.sol';
 // import "hardhat/console.sol";
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
+import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
@@ -117,6 +119,7 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
     uint8 MAX_STEPS_LEN; // This variable is responsible to minimsing risk of gas limit strategies being added
                         // Which would always have 0 gas cost because they could never complete
     Strategy[] public strategies;
+    mapping(uint256 => bool) strategyBlacklist;
 
 
     function initialize(address _executor, address _distributor) initializer public  {
@@ -182,7 +185,43 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
     // Since thats what you have to return 
     function strategyProfitInReturnToken(uint256 strategyID) public view returns (uint256 profit) {
         Strategy memory currentStrategy = strategies[strategyID];
+        if(strategyBlacklist[strategyID]) return 0;
         return executor.getStrategyProfitInReturnToken(currentStrategy.pairs, currentStrategy.feeOnTransfers, currentStrategy.token0Out);
+    }
+
+    function strategyProfitInETH(uint256 strategyID) public view returns (uint256 profit) {
+        Strategy memory currentStrategy = strategies[strategyID];
+        if(strategyBlacklist[strategyID]) return 0;
+        profit = executor.getStrategyProfitInReturnToken(currentStrategy.pairs, currentStrategy.feeOnTransfers, currentStrategy.token0Out);
+        if(profit == 0) return profit;
+        address pair = currentStrategy.pairs[0];
+        address token = currentStrategy.token0Out[0] ? IUniswapV2Pair(pair).token1() : IUniswapV2Pair(pair).token0(); 
+        address pairForProfitToken = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f).getPair(
+            0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, token
+        );
+        if(pairForProfitToken == address(0)) return 0;
+        bool profitTokenIsToken0InPair = IUniswapV2Pair(pairForProfitToken).token0() == token;
+        (uint256 reserve0, uint256 reserve1,) = IUniswapV2Pair(pairForProfitToken).getReserves();
+
+        if(profitTokenIsToken0InPair) {
+            profit = getAmountOut(profit, reserve0, reserve1);
+        }
+        else {
+            profit = getAmountOut(profit, reserve1, reserve0);
+        }
+    }
+
+    function mostProfitableStrategyInETH() public view  returns (uint256 profit, uint256 strategyID){
+          
+          for (uint256 i = 0; i < strategies.length; i++) {
+              uint256 profitThisStrategy = strategyProfitInETH(i);
+
+              if(profitThisStrategy > profit) {
+                profit = profitThisStrategy;
+                strategyID = strategyID;
+              }
+
+          }
     }
 
 
@@ -214,19 +253,49 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
         require(!depreciated, "This Contract is depreciated");
         Strategy memory currentStrategy = strategies[strategyPID];
 
-        executor.executeStrategy(currentStrategy.pairs, currentStrategy.feeOnTransfers, currentStrategy.token0Out, currentStrategy.cBTCSupport);
+        
+        try executor.executeStrategy(currentStrategy.pairs, currentStrategy.feeOnTransfers, currentStrategy.token0Out, currentStrategy.cBTCSupport)
+        { 
+            splitProfit(currentStrategy);
+        }
+        catch (bytes memory reason) 
+        {
+            bytes memory k = bytes("UniswapV2: K");
 
-        splitProfit(currentStrategy);
+            // We blacklist malicious 
+            if(reason.length == 100 && !currentStrategy.feeOff) { // "UniswapV2: K" 
+                strategyBlacklist[strategyPID] = true;
+                return;
+            } else {
+                revert("Strategy could not execute, most likely because it was not profitable at the moment of execution.");
+            }
+        }
+
     }
 
     // Miner-friendly strategy executor
     function executeStrategy(uint256 inputAmount, uint256 strategyPID) public {
+
         require(!depreciated, "This Contract is depreciated");
         Strategy memory currentStrategy = strategies[strategyPID];
 
-        executor.executeStrategy(inputAmount ,currentStrategy.pairs, currentStrategy.feeOnTransfers, currentStrategy.token0Out, currentStrategy.cBTCSupport);
+        try executor.executeStrategy(inputAmount ,currentStrategy.pairs, currentStrategy.feeOnTransfers, currentStrategy.token0Out, currentStrategy.cBTCSupport)
+        { 
+            splitProfit(currentStrategy);
+        }
+        catch (bytes memory reason) 
+        {
+            bytes memory k = bytes("UniswapV2: K");
+            // We blacklist malicious 
+            if(reason.length == 100 && !currentStrategy.feeOff) { // "UniswapV2: K" // We don't blacklist admin added
+                strategyBlacklist[strategyPID] = true;
+                return;
+            } else {
+                revert("Strategy could not execute, most likely because it was not profitable at the moment of execution.");
+            }
+        }
+     
 
-        splitProfit(currentStrategy);
     }
 
     function splitProfit(Strategy memory currentStrategy) internal {
@@ -302,7 +371,7 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
 
         // Loop over all other pairs
         for (uint256 i = 1; i < token0Out.length; i++) {
-
+            require(pairs[i] != pairs[0], "Uniswap lock");
             address token0 = IUniswapV2Pair(pairs[i]).token0();
             address token1 = IUniswapV2Pair(pairs[i]).token1();
 
@@ -384,6 +453,10 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
         }
         
         // address[] memory pairs, uint256[] memory feeOnTransfers, bool[] memory token0Out, bool cBTCSupport
+        
+        // Before adding to return index
+        strategyID = strategies.length;
+
         strategies.push(
             Strategy({
                 strategyName : strategyName,
@@ -395,7 +468,6 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
             })
         );
 
-        strategyID = strategies.length;
 
         emit StrategyAdded(strategyName, strategyID, pairs, msg.sender == owner(), msg.sender);
     }
@@ -418,6 +490,18 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
 
     function getTokenSafeName(address token) public view returns (string memory) {
         return SafeERC20Namer.tokenSymbol(token);
+    }
+
+
+    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal  pure returns (uint256 amountOut) {
+        require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
+        require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
+        uint amountInWithFee = amountIn.mul(997);
+
+        uint numerator = amountInWithFee.mul(reserveOut);
+        uint denominator = reserveIn.mul(1000).add(amountInWithFee);
+
+        amountOut = numerator / denominator;
     }
 
     // A function that lets owner remove any tokens from this addrss

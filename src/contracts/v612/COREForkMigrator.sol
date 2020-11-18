@@ -215,11 +215,10 @@ contract COREForkMigrator is OwnableUpgradeSafe {
         postLGELPTokenAddress = _token;
     }
 
-    function claimLPForForLP() lock public {
+    function claimLP() lock public {
         require(getOwedLP(msg.sender) > 0, "nothing to claim");
-        LPClaimed[msg.sender] = true;
-
         IERC20(postLGELPTokenAddress).transfer(msg.sender, getOwedLP(msg.sender));
+        LPClaimed[msg.sender] = true;
     }
 
     function getOwedLP(address user) public view returns (uint256 LPDebtForUser) {

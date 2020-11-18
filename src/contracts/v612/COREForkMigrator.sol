@@ -364,7 +364,9 @@ contract COREForkMigrator is OwnableUpgradeSafe {
         require(amtWETH > UNICORETotalSupply.mul(60).div(100), " Didn't get enough ETH ");
         require(amtWETH > 500 ether, " Didn't get enough ETH"); // sanity
         
-        Ether_Total_For_UNICORE_LP = amtWETH;
+        Ether_Total_For_UNICORE_LP = amtWETH
+                .mul(Ether_Credit_Per_ENCORE_LP)
+                .div(1e18);
         wETH.withdraw(amtWETH);
 
         unicore.setGovernanceLevel(address(this), 1);
@@ -500,7 +502,9 @@ contract COREForkMigrator is OwnableUpgradeSafe {
         IProxyAdmin(TENS_Proxy_Admin).upgrade(TENS_Vault, Vault_Permanent);
         TENS_Fee_Approver_Permanent = address ( new TENSFeeApproverPermanent() );
         ICORE(TENS_Token).setShouldTransferChecker(TENS_Fee_Approver_Permanent);
-        Ether_Total_For_TENS_LP = newETH;
+        Ether_Total_For_TENS_LP = newETH
+                .mul(Ether_Credit_Per_ENCORE_LP)
+                .div(1e18);;
 
         _sendOwnershipOfTENSBackToMultisig();
 

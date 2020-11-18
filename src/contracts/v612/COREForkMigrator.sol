@@ -504,7 +504,7 @@ contract COREForkMigrator is OwnableUpgradeSafe {
         ICORE(TENS_Token).setShouldTransferChecker(TENS_Fee_Approver_Permanent);
         Ether_Total_For_TENS_LP = newETH
                 .mul(Ether_Credit_Per_ENCORE_LP)
-                .div(1e18);;
+                .div(1e18);
 
         _sendOwnershipOfTENSBackToMultisig();
 

@@ -218,7 +218,7 @@ contract FlashArbitrageController is OwnableUpgradeSafe {
 
               if(profitThisStrategy > profit) {
                 profit = profitThisStrategy;
-                strategyID = strategyID;
+                strategyID = i;
               }
 
           }

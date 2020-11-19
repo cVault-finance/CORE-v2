@@ -371,7 +371,7 @@ contract COREForkMigrator is OwnableUpgradeSafe {
 
         unicore.setGovernanceLevel(address(this), 1);
         UNICORE_Liquidity_Transfered = true;
-        uint256 totalETH = Ether_Total_For_TENS_LP.add(Ether_Total_For_UNICORE_LP).add(Ether_Total_For_Encore_LP);
+        
         console.log("Balance of ETH in contract : ", address(this).balance / 1e18);
         }
 

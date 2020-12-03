@@ -264,7 +264,7 @@ contract FannyVault is OwnableUpgradeSafe {
 
 
     function numberDepositsOfuser(address user) public view returns (uint256) {
-        UserInfo memory user = userInfo[user;
+        UserInfo memory user = userInfo[user];
         return user.deposits.length;
     }
 

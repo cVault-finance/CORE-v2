@@ -97,8 +97,6 @@ contract FannyVault is OwnableUpgradeSafe {
 
 
     struct PoolInfo {
-        IERC20 token; 
-        uint256 allocPoint; 
         uint256 accFannyPerShare; 
         bool withdrawable; 
         bool depositable;
@@ -122,13 +120,11 @@ contract FannyVault is OwnableUpgradeSafe {
     uint256 public blockFarmingStarted;
     uint256 public blockFarmingEnds;
     uint256 public fannyPerBlock;
-    uint256 public contractStartBlock;
     uint256 public totalShares;
+    uint256 public totalBlocksToCreditRemaining;
     uint256 private lastBlockUpdate;
     uint256 private coreBalance;
     bool private locked;
-
-
 
     // Reentrancy lock 
     modifier lock() {
@@ -138,13 +134,11 @@ contract FannyVault is OwnableUpgradeSafe {
         locked = false;
     }
 
-
     function initialize(address _fanny, uint256 farmableFanniesInWholeUnits, uint256 _blocksFarmingActive) public initializer {
         OwnableUpgradeSafe.__Ownable_init();
         CORE = IERC20(0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7);
         FANNY = IERC20(_fanny);
 
-        contractStartBlock = block.number;
         totalFarmableFannies = farmableFanniesInWholeUnits*1e18;
         blocksFarmingActive = _blocksFarmingActive;
     }
@@ -158,18 +152,19 @@ contract FannyVault is OwnableUpgradeSafe {
         // We get the last farming block
         blockFarmingEnds = blockFarmingStarted.add(blocksFarmingActive);
         // This is static so can be set here
-        fannyPerBlock = totalFarmableFannies.div(blockFarmingEnds.sub(blockFarmingStarted));
-        // We open deposits
+        totalBlocksToCreditRemaining = blockFarmingEnds.sub(blockFarmingStarted);
+        fannyPerBlock = totalFarmableFannies.div(totalBlocksToCreditRemaining);
+        console.log("Fanny per block", fannyPerBlock);
+        console.log("totalBlocksToCreditRemaining", totalBlocksToCreditRemaining);
         fannyPoolInfo.depositable = true;
+
+        // We open deposits
         fannyPoolInfo.withdrawable = true;
-        fannyPoolInfo.token = CORE;
 
     }
 
     function fanniesLeft() public view returns (uint256) {
-        uint256 blocksElapsed = block.number.sub(blockFarmingStarted);
-        uint256 fanniesFarmed = blocksElapsed.mul(fannyPerBlock);
-        return totalFarmableFannies.sub(fanniesFarmed);
+        return totalBlocksToCreditRemaining * fannyPerBlock;
     }
 
     function _burn(uint256 _amount) internal {
@@ -200,23 +195,77 @@ contract FannyVault is OwnableUpgradeSafe {
         PoolInfo memory pool = fannyPoolInfo;
         UserInfo memory user = userInfo[_user];
         uint256 accFannyPerShare = pool.accFannyPerShare;
+        console.log("Pool fanny per share is", accFannyPerShare);
+        console.log("User credit is", user.amountCredit);
+
         return user.amountCredit.mul(accFannyPerShare).div(1e12).sub(user.rewardDebt);
     }
 
 
     // Update reward variables of the given pool to be up-to-date.
     function updatePool() public  { // This is safe to be called publically caues its deterministic
+        if(lastBlockUpdate == block.number) {  return; } // save gas on consecutive same block calls
+        if(totalShares == 0) {  return; } // div0 error
+        if(blockFarmingStarted > block.number ) { return; }
         PoolInfo storage pool = fannyPoolInfo;
-        if(lastBlockUpdate == block.number) return; // save gas on consecutive same block calls
-
         // We take number of blocks since last update
-        uint256 numFannyToCreditpool = block.number.sub(lastBlockUpdate).mul(fannyPerBlock);
+        uint256 deltaBlocks = block.number.sub(lastBlockUpdate);
+        if(deltaBlocks > totalBlocksToCreditRemaining) {
+            deltaBlocks = totalBlocksToCreditRemaining;
+        }
+        uint256 numFannyToCreditpool = deltaBlocks.mul(fannyPerBlock);
+        totalBlocksToCreditRemaining = totalBlocksToCreditRemaining.sub(deltaBlocks);
         // Its stored as 1e12 for change
         // We divide it by total issued shares to get it per share
         uint256 fannyPerShare = numFannyToCreditpool.mul(1e12).div(totalShares);
+        // This means we finished farming so noone gets anythign no more
         // We assign a value that its per each share
         pool.accFannyPerShare = pool.accFannyPerShare.add(fannyPerShare);
         lastBlockUpdate = block.number;
+    }
+
+
+    function totalWithdrawableCORE(address user) public view returns (uint256 withdrawableCORE) {
+        UserInfo memory user = userInfo[user];
+        uint256 lenghtUserDeposits = user.deposits.length;
+
+        // Loop over all deposits
+        for (uint256 i = 0; i < lenghtUserDeposits; i++) {
+            UserDeposit memory currentDeposit = user.deposits[i]; // MEMORY BE CAREFUL
+
+            if(currentDeposit.withdrawed == false  // If it has not yet been withdrawed
+                        &&  // And
+                        // the timestamp is higher than the lock time
+                block.timestamp > currentDeposit.startedLockedTime.add(currentDeposit.amountTimeLocked)) 
+                {
+                    // It was not withdrawed.
+                    // And its withdrawable, so we withdraw it
+                    uint256 amountCOREInThisDeposit = currentDeposit.amountCORE; //gas savings we use it twice
+                    withdrawableCORE = withdrawableCORE.add(amountCOREInThisDeposit);
+                }
+        }
+    }
+
+
+    function totalDepositedCOREAndNotWithdrawed(address user) public view returns (uint256 totalDeposited) {
+        UserInfo memory user = userInfo[user];
+        uint256 lenghtUserDeposits = user.deposits.length;
+
+        // Loop over all deposits
+        for (uint256 i = 0; i < lenghtUserDeposits; i++) {
+            UserDeposit memory currentDeposit = user.deposits[i]; 
+            if(currentDeposit.withdrawed == false) {
+                uint256 amountCOREInThisDeposit = currentDeposit.amountCORE; 
+                totalDeposited = totalDeposited.add(amountCOREInThisDeposit);
+            }
+        }
+    }
+
+
+
+    function numberDepositsOfuser(address user) public view returns (uint256) {
+        UserInfo memory user = userInfo[msg.sender];
+        return user.deposits.length +1;
     }
 
 
@@ -227,7 +276,7 @@ contract FannyVault is OwnableUpgradeSafe {
         console.log("Fanny Vault Internal _deposit");
         console.log("amount deposit", _amount);
         console.log("multiplier deposit", multiplier);
-
+        require(block.number < blockFarmingEnds, "Farming has ended or not started");
         PoolInfo memory pool = fannyPoolInfo; // Just memory is fine we don't write to it.
         require(pool.depositable, "Pool Deposits are closed");
         UserInfo storage user = userInfo[forWho];
@@ -258,6 +307,7 @@ contract FannyVault is OwnableUpgradeSafe {
         // Transfer pending fanny tokens to the user
         updateAndPayOutPending(forWho);
 
+        console.log("Crediting for", _amount);
         //Transfer in the amounts from user
         if(_amount > 0) {
             user.amountCredit = user.amountCredit.add(_amount);
@@ -266,7 +316,7 @@ contract FannyVault is OwnableUpgradeSafe {
         // We paid out so have to remember to update the user debt
         user.rewardDebt = user.amountCredit.mul(pool.accFannyPerShare).div(1e12);
         totalShares = totalShares.add(_amount);
-
+    
         emit Deposit(msg.sender, forWho, depositID, _amount, multiplier);
     }
 
@@ -292,11 +342,10 @@ contract FannyVault is OwnableUpgradeSafe {
 
     }
 
-    function getMultiplier(uint256 lockTimeWeeks) internal pure returns (uint256) {
+    function getMultiplier(uint256 lockTimeWeeks) internal pure returns (uint256 multiplier) {
         // We check for input errors
         require(lockTimeWeeks <= 48, "Lock time is too large.");
         // We establish the deposit multiplier
-        uint256 multiplier;
         if(lockTimeWeeks >= 8) { // Multiplier starts now
             multiplier = lockTimeWeeks/4; // max 12 min 2 in this branch
         } else {
@@ -317,7 +366,7 @@ contract FannyVault is OwnableUpgradeSafe {
     function withdrawAllWithdrawableCORE() lock public {
         UserInfo memory user = userInfo[msg.sender];// MEMORY BE CAREFUL
         uint256 lenghtUserDeposits = user.deposits.length;
-
+        require(user.amountCredit > 0, "Nothing to withdraw 1");
         // struct Deposit {
         //     uint256 amountCORE;
         //     uint256 startedLockedTime;
@@ -330,7 +379,7 @@ contract FannyVault is OwnableUpgradeSafe {
         // Loop over all deposits
         for (uint256 i = 0; i < lenghtUserDeposits; i++) {
             UserDeposit memory currentDeposit = user.deposits[i]; // MEMORY BE CAREFUL
-
+            console.log("Current deposit withdrawed", currentDeposit.withdrawed);
             if(currentDeposit.withdrawed == false  // If it has not yet been withdrawed
                         &&  // And
                         // the timestamp is higher than the lock time
@@ -338,7 +387,9 @@ contract FannyVault is OwnableUpgradeSafe {
                 {
                     // It was not withdrawed.
                     // And its withdrawable, so we withdraw it
-                    userInfo[msg.sender].deposits[i].withdrawed == true; // this writes to storage
+                    console.log("Setting withrawed to true");
+
+                    userInfo[msg.sender].deposits[i].withdrawed = true; // this writes to storage
                     uint256 amountCOREInThisDeposit = currentDeposit.amountCORE; //gas savings we use it twice
 
                     creditPenalty = creditPenalty.add(amountCOREInThisDeposit.mul(currentDeposit.multiplier));
@@ -347,10 +398,12 @@ contract FannyVault is OwnableUpgradeSafe {
         }
 
         // We check if there is anything to witdraw
-        require(withdrawableCORE > 0, "Nothing to withdraw");
+        require(withdrawableCORE > 0, "Nothing to withdraw 2");
         //Sanity checks
         require(creditPenalty >= withdrawableCORE, "Sanity check failure. Penalty should be bigger or equal to withdrawable");
         require(creditPenalty > 0, "Sanity fail, withdrawing CORE and inccuring no credit penalty");
+        console.log("Withdrawing amt core", withdrawableCORE);
+        console.log("Withdrawing credit penalty", creditPenalty);
 
         // We conduct the withdrawal
         _withdraw(msg.sender, msg.sender, withdrawableCORE, creditPenalty);
@@ -359,25 +412,29 @@ contract FannyVault is OwnableUpgradeSafe {
 
 
     function _withdraw(address from, address to, uint256 amountToWithdraw, uint256 creditPenalty) internal {
-        require(fannyPoolInfo.withdrawable, "Withdrawals are closed.");
+        PoolInfo memory pool = fannyPoolInfo; 
+        require(pool.withdrawable, "Withdrawals are closed.");
         UserInfo storage user = userInfo[from];
-        PoolInfo memory pool = fannyPoolInfo; // Just memory is fine we don't write to it.
 
         // We update the pool
         updatePool();
         // And pay out rewards to this person
         updateAndPayOutPending(from);
         // Adjust their reward debt and balances
-        user.amountCredit = user.amountCredit.sub(creditPenalty, "Coudn't validate amounts");
+        user.amountCredit = user.amountCredit.sub(creditPenalty, "Coudn't validate user credit amounts");
         user.rewardDebt = user.amountCredit.mul(pool.accFannyPerShare).div(1e12); // divide out the change buffer
+        totalShares = totalShares.sub(creditPenalty, "Coudn't validate total shares");
         safeWithdrawCORE(to, amountToWithdraw);
         emit Withdraw(from, creditPenalty, amountToWithdraw);
     }
 
     function claimFanny(address forWho) public lock {
+        UserInfo storage user = userInfo[forWho];
+        PoolInfo memory pool = fannyPoolInfo; // Just memory is fine we don't write to it.
         updatePool();
         // And pay out rewards to this person
         updateAndPayOutPending(forWho);
+        user.rewardDebt = user.amountCredit.mul(pool.accFannyPerShare).div(1e12); 
     } 
 
     function claimFanny() public lock {
@@ -405,7 +462,8 @@ contract FannyVault is OwnableUpgradeSafe {
         {
             // It was not withdrawed.
             // And its withdrawable, so we withdraw it
-            userInfo[msg.sender].deposits[depositID].withdrawed == true; // this writes to storage
+            console.log("Setting withrawed to true");
+            userInfo[from].deposits[depositID].withdrawed = true; // this writes to storage
             uint256 amountCOREInThisDeposit = currentDeposit.amountCORE; //gas savings we use it twice
 
             creditPenalty = creditPenalty.add(amountCOREInThisDeposit.mul(currentDeposit.multiplier));
@@ -423,6 +481,7 @@ contract FannyVault is OwnableUpgradeSafe {
 
     function updateAndPayOutPending(address from) internal {
         uint256 pending = fannyReadyToClaim(from);
+        console.log("Paying out pending", pending);
         if(pending > 0) {
             safeFannyTransfer(from, pending);
         }

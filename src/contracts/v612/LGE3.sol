@@ -65,7 +65,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import './COREv1/ICoreVault.sol';
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 
 interface ICOREVault {
@@ -201,7 +201,7 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
         require(msg.value > 0, "LGE : You should deposit something most likely");
         
         IWETH(WETH).deposit{value: msg.value}();
-        console.log("Value of ETH deposit is", msg.value / 1e18, "ETH");
+        // console.log("Value of ETH deposit is", msg.value / 1e18, "ETH");
 
         uint256 valueInCOREUnits = getAveragePriceLast20BlocksIn1WETHPriceWorth(CORE).mul(msg.value).div(1e18);
         credit[msg.sender] = credit[msg.sender].add(valueInCOREUnits);
@@ -253,12 +253,12 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
                 : sellTokenForWETH(token1, balanceToken1After.sub(balanceToken1Before), false);
 
             uint256 balanceWETHNew = IERC20(WETH).balanceOf(address(this));
-            console.log("Balance WETH", balanceWETHNew);
+            // console.log("Balance WETH", balanceWETHNew);
 
             uint256 reserveWETH = tokenReserves[WETH];
-            console.log("amountOutToken0",amountOutToken0);
-            console.log("amountOutToken1",amountOutToken1);
-            console.log("REserve", reserveWETH);
+            // console.log("amountOutToken0",amountOutToken0);
+            // console.log("amountOutToken1",amountOutToken1);
+            // console.log("REserve", reserveWETH);
 
             require(balanceWETHNew > reserveWETH, "sir.");
             uint256 totalWETHAdded = amountOutToken0.add(amountOutToken1);
@@ -266,8 +266,8 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
             tokenReserves[WETH] = balanceWETHNew;
             uint256 valueInCOREUnits = getAveragePriceLast20BlocksIn1WETHPriceWorth(CORE).mul(totalWETHAdded).div(1e18);
 
-            console.log("Crediting for CORE UNITS",valueInCOREUnits);
-            console.log("Which is without deimals", valueInCOREUnits/1e18);
+            // console.log("Crediting for CORE UNITS",valueInCOREUnits);
+            // console.log("Which is without deimals", valueInCOREUnits/1e18);
             credit[msg.sender] = credit[msg.sender].add(valueInCOREUnits);
             emit Contibution(valueInCOREUnits, msg.sender);
 
@@ -297,16 +297,16 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
                 uint256 DAIReserves = IERC20(DAI).balanceOf(address(this));
                 require(DAIReserves >= tokenReserves[DAI].add(_amountContribution), "Didn't get enough DAI");
 
-                console.log("Credit in DAI right now amount : ",  _amountContribution/1e18);
+                // console.log("Credit in DAI right now amount : ",  _amountContribution/1e18);
                 uint256 valueInWETH = 
                     _amountContribution
                     .mul(1e18) 
                     .div(getAveragePriceLast20BlocksIn1WETHPriceWorth(DAI)); // 1weth buys this much DAI so we divide to get numer of weth
 
-                console.log("Thats in WETH", valueInWETH/1e18);
+                // console.log("Thats in WETH", valueInWETH/1e18);
                 uint256 valueInCOREUnits = getAveragePriceLast20BlocksIn1WETHPriceWorth(CORE).mul(valueInWETH).div(1e18);
 
-                console.log("Value in CORE ",valueInCOREUnits /1e18);
+                // console.log("Value in CORE ",valueInCOREUnits /1e18);
                 credit[msg.sender] = credit[msg.sender].add(valueInCOREUnits);
                                                                     // We can similiary trust this cause we know DAI
                 tokenReserves[DAI] = DAIReserves; 
@@ -330,21 +330,21 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
 
         // If its DAI we sell if for WETH if we have too much dai
         } else {
-            console.log("Found a shitcoin, selling it");
+            // console.log("Found a shitcoin, selling it");
             uint256 amountOut = sellTokenForWETH(_token, _amountContribution, true);
-            console.log("Sold shitcoin for WETH units", amountOut);
-            console.log("Thats without decimals", amountOut/1e18);
+            // console.log("Sold shitcoin for WETH units", amountOut);
+            // console.log("Thats without decimals", amountOut/1e18);
             uint256 balanceWETHNew = IERC20(WETH).balanceOf(address(this));
             uint256 reserveWETH = tokenReserves[WETH];
             require(balanceWETHNew > reserveWETH, "sir.");
-            console.log("Amount out",amountOut);
-            console.log("Balance new ", balanceWETHNew);
-            console.log("Reserves", reserveWETH);
+            // console.log("Amount out",amountOut);
+            // console.log("Balance new ", balanceWETHNew);
+            // console.log("Reserves", reserveWETH);
             require(reserveWETH.add(amountOut) <= balanceWETHNew, "Ekhm"); // In case someone sends dirty dirty dust
             tokenReserves[WETH] = balanceWETHNew;
             uint256 valueInCOREUnits = getAveragePriceLast20BlocksIn1WETHPriceWorth(CORE).mul(amountOut).div(1e18);
-            console.log("Crediting for CORE UNITS",valueInCOREUnits);
-            console.log("Which is without deimals", valueInCOREUnits/1e18);
+            // console.log("Crediting for CORE UNITS",valueInCOREUnits);
+            // console.log("Which is without deimals", valueInCOREUnits/1e18);
             credit[msg.sender] = credit[msg.sender].add(valueInCOREUnits);
             emit Contibution(valueInCOREUnits, msg.sender);
 
@@ -469,13 +469,14 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
     function buyCOREforWETH(uint256 amountWETH, uint256 minAmountCOREOut) onlyOwner public {
         (uint256 COREValueETH, uint256 DAIValueETH) = getDAIandCOREReservesValueInETH();
         require(COREValueETH.add(amountWETH) <= DAIValueETH, "Buying too much CORE");
-        IUniswapV2Pair pair = IUniswapV2Pair(0x62359Ed7505Efc61FF1D56fEF82158CcaffA23D7);// CORE/WETH pair
+        IUniswapV2Pair pair = IUniswapV2Pair(0x32Ce7e48debdccbFE0CD037Cc89526E4382cb81b);// CORE/WETH pair
         safeTransfer(WETH, address(pair), amountWETH);
         // CORE is token0
         (uint256 reservesCORE, uint256 reservesWETH, ) = pair.getReserves();
         uint256 coreOUT = getAmountOut(amountWETH, reservesWETH, reservesCORE);
         pair.swap(coreOUT, 0, address(this), "");
         tokenReserves[CORE] = tokenReserves[CORE].add(coreOUT);
+        tokenReserves[WETH] = IERC20(WETH).balanceOf(address(this)); 
         require(coreOUT >= minAmountCOREOut, "Buy Slippage too high");
         emit COREBought(coreOUT);
     }
@@ -489,6 +490,7 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
         uint256 daiOUT = getAmountOut(amountWETH, reservesWETH, reservesDAI);
         pair.swap(daiOUT, 0, address(this), "");
         tokenReserves[DAI] = IERC20(DAI).balanceOf(address(this)); 
+        tokenReserves[WETH] = IERC20(WETH).balanceOf(address(this)); 
         require(daiOUT >= minAmountDAIOut, "Buy Slippage too high");
     }
 
@@ -500,6 +502,7 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
         uint256 wethOUT = getAmountOut(amountDAI, reservesDAI, reservesWETH);
         pair.swap(0, wethOUT, address(this), "");
         tokenReserves[DAI] = IERC20(DAI).balanceOf(address(this)); 
+        tokenReserves[WETH] = IERC20(WETH).balanceOf(address(this)); 
         require(wethOUT >= minAmountWETH, "Buy Slippage too high");
     }   
 
@@ -542,7 +545,7 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
         }
         // Get amt you would get for 1eth 
         uint256 outTokenFor1WETH = getAmountOut(1e18, wethReserves, tokenReserves);
-        console.log("Inside running average out token for 1 weth is", outTokenFor1WETH);
+        // console.log("Inside running average out token for 1 weth is", outTokenFor1WETH);
 
         uint8 i = currentAveragePrices.lastAddedHead;
         
@@ -608,7 +611,8 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
             uint256 DELTA = COREValueETH - DAIValueETH;
             uint256 percentOfCORETooMuch = DELTA.mul(1e18).div(COREValueETH); // carry 1e18
             // Skim too much
-            safeTransfer(CORE, CORE_MULTISIG, COREValueETH.mul(percentOfCORETooMuch).div(1e18));
+            uint256 balanceCORE = IERC20(CORE).balanceOf(address(this));
+            safeTransfer(CORE, CORE_MULTISIG, balanceCORE.mul(percentOfCORETooMuch).div(1e18));
         }
 
         // Else DAI is bigger value, we just allow it to be 4% bigger max 
@@ -633,7 +637,7 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
 
 
         uint256 balanceCORE = IERC20(CORE).balanceOf(address(this));
-        uint256 balanceDAI = IERC20(CORE).balanceOf(address(this));
+        uint256 balanceDAI = IERC20(DAI).balanceOf(address(this));
         uint256 DEV_FEE = 1000; 
         address CORE_MULTISIG = ICoreVault(coreGlobals.COREVaultAddress()).devaddr();
         uint256 devFeeCORE = balanceCORE.mul(DEV_FEE).div(10000);
@@ -651,7 +655,9 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
         IERC95(cDAI).wrapAtomic(cDAIxcCOREUniswapPair);
 
         require(IERC95(cDAI).balanceOf(cDAIxcCOREUniswapPair) == balanceDAI.sub(devFeeDAI), "Pair did not recieve enough DAI");
+        require(IERC95(cDAI).balanceOf(cDAIxcCOREUniswapPair) > 1e24 , "Pair did not recieve enough DAI"); //1mln dai
         require(IERC95(cCORE).balanceOf(cDAIxcCOREUniswapPair) == balanceCORE.sub(devFeeCORE), "Pair did not recieve enough CORE");
+        require(IERC95(CORE).balanceOf(cDAIxcCOREUniswapPair) > 300e18 , "Pair did not recieve enough CORE"); //300 core
 
 
         // Mint tokens from uniswap pair
@@ -737,12 +743,12 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
     function sellTokenForWETH(address _token, uint256 _amountTransfer, bool fromPerson) internal returns (uint256 amountOut) {
         
         // we just sell on uni cause fuck you
-        console.log("Selling token", _token);
+        // console.log("Selling token", _token);
         require(_token != DAI, "No sell DAI");
         address pairWithWETH = IUniswapV2Factory(uniswapFactory).getPair(_token, WETH);
         require(pairWithWETH != address(0), "Unsupported shitcoin"); 
-        console.log("Got pair with shitcoin", pairWithWETH);
-        console.log("selling token for amount", _amountTransfer);
+        // console.log("Got pair with shitcoin", pairWithWETH);
+        // console.log("selling token for amount", _amountTransfer);
 
         IERC20 shitcoin = IERC20(_token);
         IUniswapV2Pair pair = IUniswapV2Pair(pairWithWETH);
@@ -757,11 +763,11 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
         // check how much it got
         uint256 balanceAfter = shitcoin.balanceOf(pairWithWETH);
         (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
-        console.log("Reserve0",reserve0);
-        console.log("Reserve1",reserve1);
+        // console.log("Reserve0",reserve0);
+        // console.log("Reserve1",reserve1);
 
         uint256 DELTA = balanceAfter.sub(balanceBefore, "Fuqq");
-        console.log("Delta after send", DELTA);
+        // console.log("Delta after send", DELTA);
         // Make a swaperoo                    
         if(pair.token0() == _token) { // weth is 1
                                        // in, reservein, reserveout

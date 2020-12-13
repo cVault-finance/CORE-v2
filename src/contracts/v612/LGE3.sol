@@ -669,7 +669,7 @@ contract CORE_LGE_3 is Initializable, OwnableUpgradeSafe {
         require(pair.totalSupply() > 0, "We didn't create tokens!");
 
         totalLPCreated = pair.balanceOf(address(this));
-        LPPerCOREUnitContributed = totalLPCreated.mul(1e18).div(totalCOREUnitsContributed); // Stored as 1e18 more for round erorrs and change
+        LPPerCOREUnitContributed = totalLPCreated.mul(1e18).div(_totalCOREUnitsContributed); // Stored as 1e18 more for round erorrs and change
         require(LPPerCOREUnitContributed > 0, "LP Per Unit Contribute Must be above Zero");
 
         //Sync pair

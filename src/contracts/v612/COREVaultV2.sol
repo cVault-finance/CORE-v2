@@ -71,6 +71,30 @@ contract CoreVault is OwnableUpgradeSafe {
     uint256 public cumulativeRewardsSinceStart;
     uint256 public rewardsInThisEpoch;
     uint public epoch;
+    mapping(uint => uint256) public epochRewards;
+
+    //Chaned to public
+    uint16 public DEV_FEE;
+    uint256 private pending_DEV_rewards;
+
+    uint256 private coreBalance;
+
+    //changed to public
+    address public _superAdmin;
+
+    //new
+    bool private lock;
+    ICOREGlobals public coreGlobals;
+
+
+    // Reentrancy lock 
+    modifier lock() {
+        require(lock == 0, 'CORE Vault: LOCKED');
+        lock = 1;
+        _;
+        lock = 0;
+    }
+
 
     // Returns fees generated since start of this contract
     function averageFeesPerBlockSinceStart() external view returns (uint averagePerBlock) {
@@ -83,7 +107,7 @@ contract CoreVault is OwnableUpgradeSafe {
     }
 
     // For easy graphing historical epoch rewards
-    mapping(uint => uint256) public epochRewards;
+
 
     //Starts a new calculation epoch
     // Because averge since start will not be accurate
@@ -157,7 +181,6 @@ contract CoreVault is OwnableUpgradeSafe {
     /////
     /// NEW
     ////
-    ICOREGlobals public coreGlobals;
     // @notice : This function rebalances all pool rewards based on their volume reported by TransferHandler
     // @notice : volume is in core bottom units. ( CORE bottom units in ETH)
     // As of writing they are 1.15ETH or 1150000000000000000
@@ -218,16 +241,80 @@ contract CoreVault is OwnableUpgradeSafe {
 
 
 
+    function flashLoanLP(address _LPToken, uint256 amountLPToken, bytes calldata) lock public {
+
+        uint256 numTokens = token.balanceOf(address(this));
+        // Transfer token to pair
+        // Reentrancy here would be catastrophic.
+        // This function is "lock" so it shouldnt happen even with malicious token here
+        // This token list will not be curated in the future so a reentancy here should be taken into account
+        // We make this transfer first to minimize problems as well
+        token.transfer(address(token), amountLPToken);
+        
+        // Check supply of tokens uniswap
+        uint256 supplyTokens = IUniswapPairV2(token).totalSupply();
+        (uint256 reserve0New, uint256 reserve1New,) = IUniswapPairV2(token).getReserves();
+
+        ICORETransferHandler _transferHandler = ICORETransferHandler(coreGlobals.TransferHandler()); // savegas
+
+        // Unlock liquidity
+        _transferHandler.unlockLiquidity();
+        // Burn the liquidity to msg.sender
+        IUniswapPairV2(token).burn(msg.sender);
+        // Resync to transfers are not locked
+        _transferHandler.sync();
+        // Lock instantly after        
+        _transferHandler.lockLiquidity();
+
+        // We let the caller know he recieved tokens
+        ICOREFlashLoanReciever(msg.sender).recievedCORELoan(_LPToken, amountToken0, amountToken1, feeInPips, data);
+        
+        (address token0, address token1) = (IUniswapPairV2(token).token0(), IUniswapPairV2(token).token1());
+        
+        ICOREBuyer coreBuyer = coreGlobals.CoreBuyer();
+
+        // Ensure fee has been paid
+        if(token0 == core || token1 == core) {
+            if(token0 == core) {
+                IERC20(token0).transfer(coreBuyer, IERC20(token0).balanceOf(address(this)).sub(pendingCore, "Recieved too little token"));
+                IERC20(token1).transfer(coreBuyer, IERC20(token1).balanceOf(address(this)));
+            }else{
+                IERC20(token0).transfer(coreBuyer, IERC20(token0).balanceOf(address(this)));
+                IERC20(token1).transfer(coreBuyer, IERC20(token1).balanceOf(address(this)).sub(pendingCore, "Recieved too little token"));
+            }
+        } else {
+            IERC20(token0).transfer(coreBuyer, IERC20(token0).balanceOf(address(this)));
+            IERC20(token1).transfer(coreBuyer, IERC20(token1).balanceOf(address(this)));
+        }
+
+
+        coreBuyer.ensureFee(feeInPips, amountToken0, amountToken1);
+
+        (uint256 reserve0New, uint256 reserve1New,) = IUniswapPairV2(token).getReserves();
+
+        IERC20(token0).transfer(token, amountToken0);
+        IERC20(token1).transfer(token, amountToken1);
+        IUniswapPairV2(token).mint(address(this));
+
+        // We check that we have the same number of LP tokens
+        require(numTokens == token.balanceOf(address(this)), "Minted too little token");
+        require(reserve0New == reserve0, reserve1New == reserve1, "Token reserves uniswap don't match");
+        require(supplyTokens == IUniswapPairV2(token).totalSupply(), "LP supply changed");
+
+
+
+    }
+
+
+
     // Sets the dev fee for this contract
     // defaults at 7.24%
     // Note contract owner is meant to be a governance contract allowing CORE governance consensus
-    uint16 DEV_FEE;
+
     function setDevFee(uint16 _DEV_FEE) public onlyOwner {
         require(_DEV_FEE <= 1000, 'Dev fee clamped at 10%');
         DEV_FEE = _DEV_FEE;
     }
-    uint256 pending_DEV_rewards;
-
 
     // View function to see pending COREs on frontend.
     function pendingCore(uint256 _pid, address _user)
@@ -257,7 +344,7 @@ contract CoreVault is OwnableUpgradeSafe {
     // ----
     // Function that adds pending rewards, called by the CORE token.
     // ----
-    uint256 private coreBalance;
+
     function addPendingRewards(uint256 _) public {
         uint256 newRewards = core.balanceOf(address(this)).sub(coreBalance);
         
@@ -291,7 +378,7 @@ contract CoreVault is OwnableUpgradeSafe {
     }
 
     // Deposit  tokens to CoreVault for CORE allocation.
-    function deposit(uint256 _pid, uint256 _amount) public {
+    function deposit(uint256 _pid, uint256 _amount) lock public {
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -320,7 +407,7 @@ contract CoreVault is OwnableUpgradeSafe {
     // [x] Does user get the deposited amounts?
     // [x] Does user that its deposited for update correcty?
     // [x] Does the depositor get their tokens decreased
-    function depositFor(address depositFor, uint256 _pid, uint256 _amount) public {
+    function depositFor(address depositFor, uint256 _pid, uint256 _amount) lock public {
         // requires no allowances
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][depositFor];
@@ -353,7 +440,7 @@ contract CoreVault is OwnableUpgradeSafe {
     // [x] Does allowance decrease?
     // [x] Do oyu need allowance
     // [x] Withdraws to correct address
-    function withdrawFrom(address owner, uint256 _pid, uint256 _amount) public{
+    function withdrawFrom(address owner, uint256 _pid, uint256 _amount) lock public{
         
         PoolInfo storage pool = poolInfo[_pid];
         require(pool.allowance[owner][msg.sender] >= _amount, "withdraw: insufficient allowance");
@@ -364,7 +451,7 @@ contract CoreVault is OwnableUpgradeSafe {
     
 
     // Withdraw  tokens from CoreVault.
-    function withdraw(uint256 _pid, uint256 _amount) public {
+    function withdraw(uint256 _pid, uint256 _amount) lock public {
 
         _withdraw(_pid, _amount, msg.sender, msg.sender);
 
@@ -426,7 +513,7 @@ contract CoreVault is OwnableUpgradeSafe {
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
     // !Caution this will remove all your pending rewards!
-    function emergencyWithdraw(uint256 _pid) public {
+    function emergencyWithdraw(uint256 _pid) lock public {
         PoolInfo storage pool = poolInfo[_pid];
         require(pool.withdrawable, "Withdrawing from this pool is disabled");
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -486,7 +573,7 @@ contract CoreVault is OwnableUpgradeSafe {
 
 
 
-    address private _superAdmin;
+
 
     event SuperAdminTransfered(address indexed previousOwner, address indexed newOwner);
 

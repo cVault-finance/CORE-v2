@@ -3,7 +3,7 @@ require('buidler-log-remover');
 
 module.exports = {
   solidity: {
-    version: "0.4.24",
+    version: "0.5.0",
     settings: {
       optimizer: {
         enabled: true,
@@ -16,10 +16,10 @@ module.exports = {
       allowUnlimitedContractSize: true,
       settings: {
         evmVersion: "byzantium"
-       }
+      }
     },
   },
   paths: {
-    sources: "./contracts/v424",
+    sources: "./contracts/v500",
   }
 };

@@ -9,7 +9,7 @@ const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
 const COREDelegator = artifacts.require('COREDelegator');
 const COREGlobals = artifacts.require('COREGlobals');
 
-const ERC95 = artifacts.require('ERC95');
+// const ERC95 = artifacts.require('ERC95');
 const WBTC = artifacts.require('WBTC');
 const cBTC = artifacts.require('cBTC');
 
@@ -24,8 +24,11 @@ contract('ERC95 tests', ([x3, revert]) => {
         this.WBTC.mint(x3, 6e8); // Mint 6 BTC equivalent
         this.delegator = await COREDelegator.new();
         this.COREGlobals = await COREGlobals.new(
+            { from: revert });
+
+        await this.COREGlobals.initialize(
             revert, revert,
-            this.delegator.address, revert, revert, revert,
+            this.delegator.address, revert, revert, this.delegator.address,
             { from: revert });
 
         this.DORE = await ERC20DetailedToken.new("Dumbledore Token", "DORE", "18", ((new BN(10000)).mul((new BN(10)).pow(new BN(18)))).toString(), { from: x3 });
@@ -91,27 +94,27 @@ contract('ERC95 tests', ([x3, revert]) => {
         //1 c95-50WBTC+50DORE should be exactly - 50*1e8/100 WBTC and 50*1e18/100 DORE
         //constructor(string memory name, string memory symbol, address[] memory _addresses, uint8[] memory _percent, uint8[] memory tokenDecimals) public {
         const c95_50WBTC_50DORE_args = [
-            "c95-50WBTC+50DORE",
-            "c95-50WBTC+50DORE",
             [
-                this.WBTC.address,
-                this.DORE.address
+                this.WBTC.address
             ],
             [
-                50,
-                50
+                100
             ],
             [
-                8,
-                18
-            ]
+                8
+            ], this.COREGlobals.address
+
         ]
         // x3 balances
         // WBTC: 6
         // dorewbtc: 0
-        this.c95_50WBTC_50DORE = await ERC95.new(...c95_50WBTC_50DORE_args, { from: x3 });
+        this.c95_50WBTC_50DORE = await cBTC.new(...c95_50WBTC_50DORE_args, { from: x3 });
         const dorewbtc = this.c95_50WBTC_50DORE; // dorewbtc is just a nickname for this wrapped 50/50 wbtc/dore thing
         // Send in 1 WBTC (8 decimals)
+        await this.c95_50WBTC_50DORE.setLGEAddress(x3, { from: x3 });
+        await this.c95_50WBTC_50DORE.unpauseTransfers({ from: x3 });
+
+
         await this.WBTC.transfer(dorewbtc.address, 1e8.toString(), { from: x3 });
         // Now send in 1 DORE (18 decimals)
         await this.DORE.transfer(dorewbtc.address, 1e18.toString(), { from: x3 });

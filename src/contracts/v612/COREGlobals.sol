@@ -29,6 +29,8 @@
 
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "hardhat/console.sol";
+
 
 contract COREGlobals is OwnableUpgradeSafe {
 
@@ -38,7 +40,7 @@ contract COREGlobals is OwnableUpgradeSafe {
     address public COREVaultAddress;
     address public COREWETHUniPair;
     address public UniswapFactory;
-    address public transferHandler;
+    address public TransferHandler;
 
     function initialize(address _COREWETHUniPair, address _COREToken, address _COREDelegator, address _COREVault, address _uniFactory, address _transferHandler) public initializer {
         OwnableUpgradeSafe.__Ownable_init();
@@ -47,7 +49,7 @@ contract COREGlobals is OwnableUpgradeSafe {
         COREDelegatorAddress = _COREDelegator;
         COREVaultAddress = _COREVault;
         UniswapFactory = _uniFactory;
-        transferHandler = _transferHandler;
+        TransferHandler = _transferHandler;
         COREWETHUniPair = _COREWETHUniPair;
     }
 
@@ -64,7 +66,7 @@ contract COREGlobals is OwnableUpgradeSafe {
     }
 
     function setTransferHandler(address _transferHandler) public onlyOwner {
-        transferHandler = _transferHandler;
+        TransferHandler = _transferHandler;
     }
 
     mapping (address => bool) private delegatorStateChangeApproved;
